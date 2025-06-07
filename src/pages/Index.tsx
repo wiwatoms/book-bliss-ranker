@@ -1,13 +1,50 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+
+import React from 'react';
+import { AppProvider, useApp } from '@/contexts/AppContext';
+import { Layout } from '@/components/Layout';
+import { StartScreen } from '@/components/StartScreen';
+import { NameInput } from '@/components/NameInput';
+import { Survey } from '@/components/Survey';
+import { ComparisonView } from '@/components/ComparisonView';
+import { RankingView } from '@/components/RankingView';
+import { AdminDashboard } from '@/components/AdminDashboard';
+
+function AppContent() {
+  const { currentStep } = useApp();
+
+  const renderCurrentStep = () => {
+    switch (currentStep) {
+      case 'start':
+        return <StartScreen />;
+      case 'name':
+        return <NameInput />;
+      case 'survey':
+        return <Survey />;
+      case 'titles':
+        return <ComparisonView type="title" />;
+      case 'covers':
+        return <ComparisonView type="cover" />;
+      case 'dashboard':
+        return <AdminDashboard />;
+      default:
+        return <StartScreen />;
+    }
+  };
+
+  const showProgress = ['name', 'survey', 'titles'].includes(currentStep);
+
+  return (
+    <Layout showProgress={showProgress}>
+      {renderCurrentStep()}
+    </Layout>
+  );
+}
 
 const Index = () => {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background">
-      <div className="text-center">
-        <h1 className="text-4xl font-bold mb-4">Welcome to Your Blank App</h1>
-        <p className="text-xl text-muted-foreground">Start building your amazing project here!</p>
-      </div>
-    </div>
+    <AppProvider>
+      <AppContent />
+    </AppProvider>
   );
 };
 
