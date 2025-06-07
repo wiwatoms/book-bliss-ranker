@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { ArrowRight, Eye } from 'lucide-react';
+import { Eye } from 'lucide-react';
 import { useApp } from '@/contexts/AppContext';
 import { Title, CoverImage, ComparisonPair } from '@/types';
 
@@ -132,13 +132,6 @@ export function ComparisonView({ type }: ComparisonViewProps) {
               )}
             </CardContent>
           </Card>
-
-          {/* VS Divider */}
-          <div className="md:absolute md:left-1/2 md:top-1/2 md:transform md:-translate-x-1/2 md:-translate-y-1/2 md:z-10 flex items-center justify-center">
-            <div className="bg-white rounded-full p-4 shadow-lg border-4 border-gray-100">
-              <ArrowRight className="w-6 h-6 text-gray-600 md:rotate-90 lg:rotate-0" />
-            </div>
-          </div>
 
           {/* Option B */}
           <Card 
