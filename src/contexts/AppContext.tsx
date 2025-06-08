@@ -21,6 +21,7 @@ interface AppContextType {
   deactivateItem: (itemType: 'title' | 'cover', id: string) => void;
   resetData: () => void;
   exportCSV: (type: 'global' | 'local' | 'votes' | 'users') => void;
+  startNewSession: () => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -84,6 +85,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setCovers(initialCovers);
   }, []);
 
+  const startNewSession = () => {
+    console.log('Starting new session - resetting vote counters');
+    setTitleVotingRounds(0);
+    setCoverVotingRounds(0);
+    setCurrentUser(null);
+    setCurrentStep('start');
+  };
+
   const calculateNewScores = (winnerScore: number, loserScore: number, kFactor: number = 32) => {
     const expectedWinner = 1 / (1 + Math.pow(10, (loserScore - winnerScore) / 400));
     const expectedLoser = 1 / (1 + Math.pow(10, (winnerScore - loserScore) / 400));
@@ -96,6 +105,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const submitVote = (itemType: 'title' | 'cover', winnerId: string, loserId: string) => {
     if (!currentUser) return;
+
+    console.log(`${currentUser.name} voted: ${itemType} winner: ${winnerId}, loser: ${loserId}`);
 
     const vote: Vote = {
       id: `vote-${Date.now()}-${Math.random()}`,
@@ -127,9 +138,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         return title;
       }));
       
-      setTitleVotingRounds(prev => prev + 1);
+      const newTitleRounds = titleVotingRounds + 1;
+      setTitleVotingRounds(newTitleRounds);
+      console.log(`Title voting round: ${newTitleRounds}/${maxTitleRounds}`);
       
-      if (titleVotingRounds + 1 >= maxTitleRounds) {
+      if (newTitleRounds >= maxTitleRounds) {
+        console.log('Title voting completed, switching to covers');
         setCurrentStep('covers');
       }
     } else {
@@ -151,11 +165,17 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         return cover;
       }));
 
-      setCoverVotingRounds(prev => prev + 1);
+      const newCoverRounds = coverVotingRounds + 1;
+      setCoverVotingRounds(newCoverRounds);
+      console.log(`Cover voting round: ${newCoverRounds}/${maxCoverRounds}`);
       
-      if (coverVotingRounds + 1 >= maxCoverRounds) {
-        // Normal users go to ranking, admins can access dashboard separately
-        setCurrentStep('ranking');
+      if (newCoverRounds >= maxCoverRounds) {
+        console.log('Cover voting completed, going to ranking');
+        if (currentUser?.isAdmin) {
+          setCurrentStep('dashboard');
+        } else {
+          setCurrentStep('ranking');
+        }
       }
     }
   };
@@ -252,7 +272,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       addCover,
       deactivateItem,
       resetData,
-      exportCSV
+      exportCSV,
+      startNewSession
     }}>
       {children}
     </AppContext.Provider>

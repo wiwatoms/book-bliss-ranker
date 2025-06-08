@@ -7,7 +7,7 @@ import { Trophy, Medal, Award, BarChart, Star } from 'lucide-react';
 import { useApp } from '@/contexts/AppContext';
 
 export function RankingView() {
-  const { titles, covers, setCurrentStep, currentUser } = useApp();
+  const { titles, covers, currentUser, startNewSession } = useApp();
 
   // Get user's personal rankings based on their votes
   const getUserPersonalRankings = () => {
@@ -131,7 +131,9 @@ export function RankingView() {
           <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-full mb-4">
             <BarChart className="w-8 h-8 text-white" />
           </div>
-          <h1 className="text-3xl font-bold mb-2">Deine Bewertungsergebnisse</h1>
+          <h1 className="text-3xl font-bold mb-2">
+            {currentUser?.name ? `${currentUser.name}s Bewertungsergebnisse` : 'Deine Bewertungsergebnisse'}
+          </h1>
           <p className="text-gray-600">
             Vielen Dank für deine Teilnahme! Hier sind deine persönlichen Präferenzen und die globalen Rankings.
           </p>
@@ -211,7 +213,7 @@ export function RankingView() {
             Möchtest du eine neue Bewertung starten?
           </p>
           <Button 
-            onClick={() => setCurrentStep('start')}
+            onClick={startNewSession}
             className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700"
           >
             Neue Bewertung starten

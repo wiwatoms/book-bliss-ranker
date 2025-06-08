@@ -71,13 +71,13 @@ export function ComparisonView({ type }: ComparisonViewProps) {
   const maxRounds = isTitle ? maxTitleRounds : maxCoverRounds;
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-6">
+    <div className="min-h-screen flex items-center justify-center p-4 md:p-6">
       <div className="w-full max-w-6xl">
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold mb-2">
+        <div className="text-center mb-6 md:mb-8">
+          <h1 className="text-2xl md:text-3xl font-bold mb-2">
             {isTitle ? 'Titel-Vergleich' : 'Cover-Vergleich'}
           </h1>
-          <p className="text-gray-600">
+          <p className="text-gray-600 text-sm md:text-base">
             {isTitle 
               ? `Welcher Titel gefällt Ihnen besser? (${currentRounds}/${maxRounds})`
               : `Welches Cover gefällt Ihnen besser? (${currentRounds}/${maxRounds})`
@@ -93,14 +93,66 @@ export function ComparisonView({ type }: ComparisonViewProps) {
           </div>
         </div>
 
-        <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
-          {/* Option A */}
-          <Card 
-            className="group cursor-pointer hover:shadow-xl transition-all duration-300 hover:scale-105"
-            onClick={() => handleVote(currentPair.itemA.id, currentPair.itemB.id)}
-          >
-            <CardContent className="p-6">
-              {isTitle ? (
+        {/* Mobile optimized layout for covers */}
+        {!isTitle ? (
+          <div className="space-y-4 md:space-y-0 md:grid md:grid-cols-2 md:gap-8 max-w-4xl mx-auto">
+            {/* Option A - Mobile first */}
+            <Card 
+              className="group cursor-pointer hover:shadow-xl transition-all duration-300 hover:scale-105"
+              onClick={() => handleVote(currentPair.itemA.id, currentPair.itemB.id)}
+            >
+              <CardContent className="p-4 md:p-6">
+                <div className="text-center">
+                  <div className="relative overflow-hidden rounded-lg mb-4">
+                    <img 
+                      src={(currentPair.itemA as CoverImage).imageUrl} 
+                      alt="Cover A"
+                      className="w-full h-64 md:h-96 object-contain bg-white group-hover:scale-105 transition-transform duration-300"
+                    />
+                  </div>
+                  <Button 
+                    variant="outline" 
+                    className="w-full group-hover:bg-blue-50 group-hover:border-blue-300"
+                  >
+                    Dieses Cover wählen (A)
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Option B - Mobile first */}
+            <Card 
+              className="group cursor-pointer hover:shadow-xl transition-all duration-300 hover:scale-105"
+              onClick={() => handleVote(currentPair.itemB.id, currentPair.itemA.id)}
+            >
+              <CardContent className="p-4 md:p-6">
+                <div className="text-center">
+                  <div className="relative overflow-hidden rounded-lg mb-4">
+                    <img 
+                      src={(currentPair.itemB as CoverImage).imageUrl} 
+                      alt="Cover B"
+                      className="w-full h-64 md:h-96 object-contain bg-white group-hover:scale-105 transition-transform duration-300"
+                    />
+                  </div>
+                  <Button 
+                    variant="outline" 
+                    className="w-full group-hover:bg-purple-50 group-hover:border-purple-300"
+                  >
+                    Dieses Cover wählen (B)
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        ) : (
+          /* Desktop layout for titles */
+          <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+            {/* Option A */}
+            <Card 
+              className="group cursor-pointer hover:shadow-xl transition-all duration-300 hover:scale-105"
+              onClick={() => handleVote(currentPair.itemA.id, currentPair.itemB.id)}
+            >
+              <CardContent className="p-6">
                 <div className="text-center">
                   <div className="bg-gradient-to-br from-blue-100 to-purple-100 rounded-lg p-8 mb-4">
                     <h3 className="text-xl font-semibold text-gray-800">
@@ -114,33 +166,15 @@ export function ComparisonView({ type }: ComparisonViewProps) {
                     Diesen Titel wählen
                   </Button>
                 </div>
-              ) : (
-                <div className="text-center">
-                  <div className="relative overflow-hidden rounded-lg mb-4">
-                    <img 
-                      src={(currentPair.itemA as CoverImage).imageUrl} 
-                      alt="Cover A"
-                      className="w-full h-96 object-contain bg-white group-hover:scale-105 transition-transform duration-300"
-                    />
-                  </div>
-                  <Button 
-                    variant="outline" 
-                    className="w-full group-hover:bg-blue-50 group-hover:border-blue-300"
-                  >
-                    Dieses Cover wählen
-                  </Button>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
 
-          {/* Option B */}
-          <Card 
-            className="group cursor-pointer hover:shadow-xl transition-all duration-300 hover:scale-105"
-            onClick={() => handleVote(currentPair.itemB.id, currentPair.itemA.id)}
-          >
-            <CardContent className="p-6">
-              {isTitle ? (
+            {/* Option B */}
+            <Card 
+              className="group cursor-pointer hover:shadow-xl transition-all duration-300 hover:scale-105"
+              onClick={() => handleVote(currentPair.itemB.id, currentPair.itemA.id)}
+            >
+              <CardContent className="p-6">
                 <div className="text-center">
                   <div className="bg-gradient-to-br from-purple-100 to-pink-100 rounded-lg p-8 mb-4">
                     <h3 className="text-xl font-semibold text-gray-800">
@@ -154,28 +188,12 @@ export function ComparisonView({ type }: ComparisonViewProps) {
                     Diesen Titel wählen
                   </Button>
                 </div>
-              ) : (
-                <div className="text-center">
-                  <div className="relative overflow-hidden rounded-lg mb-4">
-                    <img 
-                      src={(currentPair.itemB as CoverImage).imageUrl} 
-                      alt="Cover B"
-                      className="w-full h-96 object-contain bg-white group-hover:scale-105 transition-transform duration-300"
-                    />
-                  </div>
-                  <Button 
-                    variant="outline" 
-                    className="w-full group-hover:bg-purple-50 group-hover:border-purple-300"
-                  >
-                    Dieses Cover wählen
-                  </Button>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
 
-        <div className="text-center mt-8">
+        <div className="text-center mt-6 md:mt-8">
           <Button 
             onClick={handleViewRankings}
             variant="ghost" 
@@ -185,6 +203,13 @@ export function ComparisonView({ type }: ComparisonViewProps) {
             Rankings anzeigen
           </Button>
         </div>
+
+        {/* Mobile helper text for covers */}
+        {!isTitle && (
+          <div className="text-center mt-4 text-sm text-gray-500 md:hidden">
+            Scrollen Sie nach unten um das zweite Cover zu sehen
+          </div>
+        )}
       </div>
     </div>
   );
