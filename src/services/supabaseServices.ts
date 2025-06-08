@@ -112,7 +112,7 @@ export const titleService = {
     const { error } = await supabase
       .from('titles')
       .update({
-        global_score: newScore.toString(),
+        global_score: newScore,
         vote_count: voteCount
       })
       .eq('id', titleId);
@@ -186,7 +186,7 @@ export const coverService = {
     const { error } = await supabase
       .from('covers')
       .update({
-        global_score: newScore.toString(),
+        global_score: newScore,
         vote_count: voteCount
       })
       .eq('id', coverId);
