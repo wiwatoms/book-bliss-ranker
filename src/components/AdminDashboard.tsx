@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -53,10 +52,11 @@ export function AdminDashboard() {
   const activeCovers = covers.filter(c => c.isActive);
   const totalVotes = votes.length;
 
-  // Get user name from vote ID (simple mapping for demo)
+  // Get user name from vote ID with better fallback
   const getUserName = (userId: string) => {
     if (userId === 'admin') return 'Administrator';
     if (currentUser && userId === currentUser.id) return currentUser.name;
+    // For demo purposes, we'll show a truncated ID since we don't store all users
     return `User ${userId.slice(-4)}`;
   };
 
@@ -251,7 +251,7 @@ export function AdminDashboard() {
                           {vote.itemType === 'title' ? 'Titel' : 'Cover'} Bewertung
                         </p>
                         <p className="text-sm text-gray-600">
-                          Nutzer: {getUserName(vote.userId)} | Gewinner: {vote.winnerItemId} | Verlierer: {vote.loserItemId}
+                          Nutzer: {getUserName(vote.userId)} | Gewinner: {vote.winnerItemId.slice(-4)} | Verlierer: {vote.loserItemId.slice(-4)}
                         </p>
                       </div>
                       <div className="text-sm text-gray-500">

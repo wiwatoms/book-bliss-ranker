@@ -34,7 +34,7 @@ export function NameInput() {
           </div>
           <CardTitle className="text-2xl">Willkommen!</CardTitle>
           <p className="text-gray-600">
-            Bitte geben Sie Ihren Namen ein, um zu beginnen.
+            Bitte gib deinen Namen ein, um zu beginnen.
           </p>
         </CardHeader>
         <CardContent>
@@ -42,7 +42,7 @@ export function NameInput() {
             <div>
               <Input
                 type="text"
-                placeholder="Ihr Name"
+                placeholder="Dein Name"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 className="text-center text-lg"

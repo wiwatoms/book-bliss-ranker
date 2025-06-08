@@ -6,6 +6,7 @@ import { StartScreen } from '@/components/StartScreen';
 import { NameInput } from '@/components/NameInput';
 import { Survey } from '@/components/Survey';
 import { ComparisonView } from '@/components/ComparisonView';
+import { FeedbackInput } from '@/components/FeedbackInput';
 import { RankingView } from '@/components/RankingView';
 import { AdminDashboard } from '@/components/AdminDashboard';
 
@@ -24,6 +25,8 @@ function AppContent() {
         return <ComparisonView type="title" />;
       case 'covers':
         return <ComparisonView type="cover" />;
+      case 'feedback':
+        return <FeedbackInput />;
       case 'ranking':
         return <RankingView />;
       case 'dashboard':
@@ -33,7 +36,7 @@ function AppContent() {
     }
   };
 
-  const showProgress = ['name', 'survey', 'titles', 'covers'].includes(currentStep);
+  const showProgress = ['name', 'survey', 'titles', 'covers', 'feedback'].includes(currentStep);
 
   return (
     <Layout showProgress={showProgress}>

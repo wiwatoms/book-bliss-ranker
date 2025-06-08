@@ -1,11 +1,11 @@
-
 export interface User {
   id: string;
   name: string;
   isAdmin: boolean;
   createdAt: Date;
   surveyAnswers?: SurveyAnswers;
-  completedSteps: number; // 0-3 (0: nicht begonnen, 1: Name, 2: Umfrage, 3: Titel, 4: Cover)
+  completedSteps: number; // 0-5 (0: nicht begonnen, 1: Name, 2: Umfrage, 3: Titel, 4: Cover, 5: Feedback)
+  feedback?: string;
 }
 
 export interface SurveyAnswers {
@@ -45,4 +45,4 @@ export interface ComparisonPair<T> {
   itemB: T;
 }
 
-export type AppStep = 'start' | 'name' | 'survey' | 'titles' | 'covers' | 'ranking' | 'dashboard';
+export type AppStep = 'start' | 'name' | 'survey' | 'titles' | 'covers' | 'feedback' | 'ranking' | 'dashboard';

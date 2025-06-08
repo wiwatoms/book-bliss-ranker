@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User, Title, CoverImage, Vote, AppStep } from '@/types';
 
@@ -101,9 +100,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   };
 
   const refreshRankings = () => {
-    console.log('Refreshing rankings display');
-    // This function can be used to trigger a re-render of rankings
-    // In a real app, this might fetch fresh data from a server
+    console.log('Refreshing rankings display - forcing re-render');
+    // Force a re-render by updating the state
+    setTitles(prev => [...prev]);
+    setCovers(prev => [...prev]);
   };
 
   const calculateNewScores = (winnerScore: number, loserScore: number, kFactor: number = 32) => {
@@ -119,7 +119,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const submitVote = (itemType: 'title' | 'cover', winnerId: string, loserId: string) => {
     if (!currentUser) return;
 
-    console.log(`${currentUser.name} voted: ${itemType} winner: ${winnerId}, loser: ${loserId}`);
+    console.log(`${currentUser.name} (${currentUser.id}) voted: ${itemType} winner: ${winnerId}, loser: ${loserId}`);
 
     const vote: Vote = {
       id: `vote-${Date.now()}-${Math.random()}`,
@@ -207,12 +207,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       console.log(`Cover voting round: ${newCoverRounds}/${maxCoverRounds}`);
       
       if (newCoverRounds >= maxCoverRounds) {
-        console.log('Cover voting completed, going to ranking');
-        if (currentUser?.isAdmin) {
-          setCurrentStep('dashboard');
-        } else {
-          setCurrentStep('ranking');
-        }
+        console.log('Cover voting completed, going to feedback');
+        setCurrentStep('feedback');
       }
     }
   };
@@ -274,9 +270,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         filename = 'global-ranking.csv';
         break;
       case 'votes':
-        csvContent = 'ID,User ID,Item Type,Winner ID,Loser ID,Timestamp\n';
+        csvContent = 'ID,User ID,User Name,Item Type,Winner ID,Loser ID,Timestamp\n';
         votes.forEach(vote => {
-          csvContent += `${vote.id},${vote.userId},${vote.itemType},${vote.winnerItemId},${vote.loserItemId},${vote.timestamp.toISOString()}\n`;
+          const userName = vote.userId === 'admin' ? 'Administrator' : 
+                          vote.userId === currentUser?.id ? currentUser?.name || 'Unknown' : 
+                          `User ${vote.userId.slice(-4)}`;
+          csvContent += `${vote.id},${vote.userId},"${userName}",${vote.itemType},${vote.winnerItemId},${vote.loserItemId},${vote.timestamp.toISOString()}\n`;
         });
         filename = 'votes-log.csv';
         break;

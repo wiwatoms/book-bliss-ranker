@@ -41,10 +41,10 @@ export function StartScreen() {
             <BookOpen className="w-10 h-10 text-white" />
           </div>
           <CardTitle className="text-3xl mb-4">
-            Eure Meinung ist mir wichtig!
+            Deine Meinung ist mir wichtig!
           </CardTitle>
           <p className="text-lg text-gray-600">
-            Für mein Buchprojekt bitte ich um euer Feedback zu Titel und Cover. Danke!
+            Für mein Buchprojekt bitte ich um dein Feedback zu Titel und Cover. Danke!
           </p>
         </CardHeader>
         <CardContent className="space-y-6">
@@ -55,7 +55,7 @@ export function StartScreen() {
                 <ul className="space-y-2 text-gray-700">
                   <li className="flex items-center">
                     <span className="w-6 h-6 bg-blue-500 text-white rounded-full flex items-center justify-center text-sm mr-3">1</span>
-                    Kurze Umfrage zu Ihren Lesegewohnheiten
+                    Kurze Umfrage zu deinen Lesegewohnheiten
                   </li>
                   <li className="flex items-center">
                     <span className="w-6 h-6 bg-purple-500 text-white rounded-full flex items-center justify-center text-sm mr-3">2</span>
@@ -67,7 +67,7 @@ export function StartScreen() {
                   </li>
                   <li className="flex items-center">
                     <span className="w-6 h-6 bg-green-500 text-white rounded-full flex items-center justify-center text-sm mr-3">4</span>
-                    Ihre persönlichen und globalen Rankings ansehen
+                    Deine persönlichen und globalen Rankings ansehen
                   </li>
                 </ul>
               </div>
