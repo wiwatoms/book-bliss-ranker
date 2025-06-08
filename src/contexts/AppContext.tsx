@@ -1,5 +1,13 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { User, Title, CoverImage, Vote, AppStep } from '@/types';
+import { User, Title, CoverImage, Vote, AppStep, SurveyAnswers } from '@/types';
+import { 
+  userService, 
+  titleService, 
+  coverService, 
+  voteService, 
+  surveyService,
+  exportService 
+} from '@/services/supabaseServices';
 
 interface AppContextType {
   currentUser: User | null;
@@ -15,42 +23,21 @@ interface AppContextType {
   // Actions
   setCurrentUser: (user: User) => void;
   setCurrentStep: (step: AppStep) => void;
-  submitVote: (itemType: 'title' | 'cover', winnerId: string, loserId: string) => void;
-  addTitle: (text: string) => void;
-  addCover: (imageUrl: string) => void;
-  deactivateItem: (itemType: 'title' | 'cover', id: string) => void;
-  resetData: () => void;
-  exportCSV: (type: 'global' | 'local' | 'votes' | 'users') => void;
+  submitVote: (itemType: 'title' | 'cover', winnerId: string, loserId: string) => Promise<void>;
+  addTitle: (text: string) => Promise<void>;
+  addCover: (imageUrl: string) => Promise<void>;
+  deactivateItem: (itemType: 'title' | 'cover', id: string) => Promise<void>;
+  resetData: () => Promise<void>;
+  exportCSV: (type: 'global' | 'local' | 'votes' | 'users') => Promise<void>;
   startNewSession: () => void;
-  refreshRankings: () => void;
+  refreshRankings: () => Promise<void>;
+  saveSurveyAnswers: (answers: SurveyAnswers) => Promise<void>;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
-const INITIAL_TITLES = [
-  "Drei Minuten und ein ganzes Leben",
-  "Der Duft, der bleibt", 
-  "Fenster zur Wüste, Türen zum Meer",
-  "Tradition ist, pünktlich zu sterben",
-  "Jenseits von Datteln",
-  "Oud & Uber"
-];
-
-const INITIAL_COVERS = [
-  "/lovable-uploads/63aedc2d-1999-403e-9eac-337861cc7005.png",
-  "/lovable-uploads/b15712d2-ed46-46a2-a635-27163a4e72c9.png",
-  "/lovable-uploads/c6e372a2-a91c-4695-9551-c0862fcd0454.png",
-  "/lovable-uploads/59cf56ab-bb9b-42fa-acb8-29ac889ed9db.png",
-  "/lovable-uploads/f8f80ad0-569e-4d23-ad54-e2fb8247af42.png",
-  "/lovable-uploads/ae9cff41-c9b6-49c9-aba9-c816e89bf1eb.png",
-  "/lovable-uploads/f7946275-b18b-4765-90d2-afd81005f79e.png",
-  "/lovable-uploads/22125e5f-725c-4b6b-9738-d3c544a03a90.png",
-  "/lovable-uploads/4cdf6293-fd36-436f-a79f-78647c3edc33.png",
-  "/lovable-uploads/2f95b6e8-e83a-43e9-b5a5-f5b4aac40180.png"
-];
-
 export function AppProvider({ children }: { children: React.ReactNode }) {
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [currentUser, setCurrentUserState] = useState<User | null>(null);
   const [currentStep, setCurrentStep] = useState<AppStep>('start');
   const [titles, setTitles] = useState<Title[]>([]);
   const [covers, setCovers] = useState<CoverImage[]>([]);
@@ -59,51 +46,72 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [coverVotingRounds, setCoverVotingRounds] = useState(0);
   const maxTitleRounds = 12;
   const maxCoverRounds = 12;
+  const [isLoading, setIsLoading] = useState(false);
 
-  // Initialize data
+  // Load initial data from Supabase
   useEffect(() => {
-    // Initialize titles
-    const initialTitles: Title[] = INITIAL_TITLES.map((text, index) => ({
-      id: `title-${index}`,
-      text,
-      globalScore: 1000,
-      localScore: 1000,
-      isActive: true,
-      voteCount: 0
-    }));
-
-    // Initialize covers
-    const initialCovers: CoverImage[] = INITIAL_COVERS.map((imageUrl, index) => ({
-      id: `cover-${index}`,
-      imageUrl,
-      globalScore: 1000,
-      localScore: 1000,
-      isActive: true,
-      voteCount: 0
-    }));
-
-    setTitles(initialTitles);
-    setCovers(initialCovers);
+    loadInitialData();
   }, []);
 
+  const loadInitialData = async () => {
+    setIsLoading(true);
+    try {
+      const [titlesData, coversData, votesData] = await Promise.all([
+        titleService.getAllTitles(),
+        coverService.getAllCovers(),
+        voteService.getAllVotes()
+      ]);
+      
+      setTitles(titlesData);
+      setCovers(coversData);
+      setVotes(votesData);
+      
+      console.log('Loaded data from Supabase:', { titles: titlesData.length, covers: coversData.length, votes: votesData.length });
+    } catch (error) {
+      console.error('Error loading initial data:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const refreshRankings = async () => {
+    console.log('Refreshing rankings from database...');
+    await loadInitialData();
+  };
+
+  const setCurrentUser = async (user: User) => {
+    setCurrentUserState(user);
+    
+    // Save or update user in database
+    if (!user.id.startsWith('user-')) {
+      // User already exists in DB
+      await userService.updateUser(user.id, user);
+    } else {
+      // Create new user in DB
+      const newUser = await userService.createUser(user);
+      if (newUser) {
+        setCurrentUserState(newUser);
+      }
+    }
+  };
+
+  const saveSurveyAnswers = async (answers: SurveyAnswers) => {
+    if (currentUser) {
+      await surveyService.saveSurveyAnswers(currentUser.id, answers);
+    }
+  };
+
   const startNewSession = () => {
-    console.log('Starting new session - resetting vote counters and local scores for new user');
+    console.log('Starting new session - resetting local data only');
     setTitleVotingRounds(0);
     setCoverVotingRounds(0);
     
-    // Reset local scores for new user session
+    // Reset only LOCAL scores for new user session, keep global scores intact
     setTitles(prev => prev.map(title => ({ ...title, localScore: 1000 })));
     setCovers(prev => prev.map(cover => ({ ...cover, localScore: 1000 })));
     
-    setCurrentUser(null);
+    setCurrentUserState(null);
     setCurrentStep('start');
-  };
-
-  const refreshRankings = () => {
-    console.log('Refreshing rankings display - forcing re-render');
-    // Force a re-render by updating the state
-    setTitles(prev => [...prev]);
-    setCovers(prev => [...prev]);
   };
 
   const calculateNewScores = (winnerScore: number, loserScore: number, kFactor: number = 32) => {
@@ -116,95 +124,112 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     return { newWinnerScore, newLoserScore };
   };
 
-  const submitVote = (itemType: 'title' | 'cover', winnerId: string, loserId: string) => {
+  const submitVote = async (itemType: 'title' | 'cover', winnerId: string, loserId: string) => {
     if (!currentUser) return;
 
     console.log(`${currentUser.name} (${currentUser.id}) voted: ${itemType} winner: ${winnerId}, loser: ${loserId}`);
 
-    const vote: Vote = {
-      id: `vote-${Date.now()}-${Math.random()}`,
-      userId: currentUser.id,
-      itemType,
-      winnerItemId: winnerId,
-      loserItemId: loserId,
-      timestamp: new Date()
-    };
-
-    setVotes(prev => [...prev, vote]);
-
     if (itemType === 'title') {
-      setTitles(prev => prev.map(title => {
-        if (title.id === winnerId) {
-          const loser = prev.find(t => t.id === loserId);
-          if (loser) {
-            const { newWinnerScore: newGlobalScore } = calculateNewScores(title.globalScore, loser.globalScore);
-            const { newWinnerScore: newLocalScore } = calculateNewScores(title.localScore, loser.localScore);
+      const winner = titles.find(t => t.id === winnerId);
+      const loser = titles.find(t => t.id === loserId);
+      
+      if (winner && loser) {
+        const { newWinnerScore: newGlobalWinnerScore, newLoserScore: newGlobalLoserScore } = 
+          calculateNewScores(winner.globalScore, loser.globalScore);
+        const { newWinnerScore: newLocalWinnerScore, newLoserScore: newLocalLoserScore } = 
+          calculateNewScores(winner.localScore, loser.localScore);
+
+        // Update local state
+        setTitles(prev => prev.map(title => {
+          if (title.id === winnerId) {
             return { 
               ...title, 
-              globalScore: newGlobalScore, 
-              localScore: newLocalScore, 
+              globalScore: newGlobalWinnerScore, 
+              localScore: newLocalWinnerScore, 
               voteCount: title.voteCount + 1 
             };
           }
-        }
-        if (title.id === loserId) {
-          const winner = prev.find(t => t.id === winnerId);
-          if (winner) {
-            const { newLoserScore: newGlobalScore } = calculateNewScores(winner.globalScore, title.globalScore);
-            const { newLoserScore: newLocalScore } = calculateNewScores(winner.localScore, title.localScore);
+          if (title.id === loserId) {
             return { 
               ...title, 
-              globalScore: newGlobalScore, 
-              localScore: newLocalScore, 
+              globalScore: newGlobalLoserScore, 
+              localScore: newLocalLoserScore, 
               voteCount: title.voteCount + 1 
             };
           }
-        }
-        return title;
-      }));
+          return title;
+        }));
+
+        // Save to database
+        await Promise.all([
+          titleService.updateTitleScore(winnerId, newGlobalWinnerScore, winner.voteCount + 1),
+          titleService.updateTitleScore(loserId, newGlobalLoserScore, loser.voteCount + 1),
+          voteService.saveVote({
+            userId: currentUser.id,
+            itemType,
+            winnerItemId: winnerId,
+            loserItemId: loserId,
+            localWinnerScore: newLocalWinnerScore,
+            localLoserScore: newLocalLoserScore
+          })
+        ]);
+      }
       
       const newTitleRounds = titleVotingRounds + 1;
       setTitleVotingRounds(newTitleRounds);
-      console.log(`Title voting round: ${newTitleRounds}/${maxTitleRounds}`);
       
       if (newTitleRounds >= maxTitleRounds) {
         console.log('Title voting completed, switching to covers');
         setCurrentStep('covers');
       }
     } else {
-      setCovers(prev => prev.map(cover => {
-        if (cover.id === winnerId) {
-          const loser = prev.find(c => c.id === loserId);
-          if (loser) {
-            const { newWinnerScore: newGlobalScore } = calculateNewScores(cover.globalScore, loser.globalScore);
-            const { newWinnerScore: newLocalScore } = calculateNewScores(cover.localScore, loser.localScore);
+      const winner = covers.find(c => c.id === winnerId);
+      const loser = covers.find(c => c.id === loserId);
+      
+      if (winner && loser) {
+        const { newWinnerScore: newGlobalWinnerScore, newLoserScore: newGlobalLoserScore } = 
+          calculateNewScores(winner.globalScore, loser.globalScore);
+        const { newWinnerScore: newLocalWinnerScore, newLoserScore: newLocalLoserScore } = 
+          calculateNewScores(winner.localScore, loser.localScore);
+
+        // Update local state
+        setCovers(prev => prev.map(cover => {
+          if (cover.id === winnerId) {
             return { 
               ...cover, 
-              globalScore: newGlobalScore, 
-              localScore: newLocalScore, 
+              globalScore: newGlobalWinnerScore, 
+              localScore: newLocalWinnerScore, 
               voteCount: cover.voteCount + 1 
             };
           }
-        }
-        if (cover.id === loserId) {
-          const winner = prev.find(c => c.id === winnerId);
-          if (winner) {
-            const { newLoserScore: newGlobalScore } = calculateNewScores(winner.globalScore, cover.globalScore);
-            const { newLoserScore: newLocalScore } = calculateNewScores(winner.localScore, cover.localScore);
+          if (cover.id === loserId) {
             return { 
               ...cover, 
-              globalScore: newGlobalScore, 
-              localScore: newLocalScore, 
+              globalScore: newGlobalLoserScore, 
+              localScore: newLocalLoserScore, 
               voteCount: cover.voteCount + 1 
             };
           }
-        }
-        return cover;
-      }));
+          return cover;
+        }));
+
+        // Save to database
+        await Promise.all([
+          coverService.updateCoverScore(winnerId, newGlobalWinnerScore, winner.voteCount + 1),
+          coverService.updateCoverScore(loserId, newGlobalLoserScore, loser.voteCount + 1),
+          voteService.saveVote({
+            userId: currentUser.id,
+            itemType,
+            winnerItemId: winnerId,
+            loserItemId: loserId,
+            localWinnerScore: newLocalWinnerScore,
+            localLoserScore: newLocalLoserScore
+          })
+        ]);
+      }
 
       const newCoverRounds = coverVotingRounds + 1;
       setCoverVotingRounds(newCoverRounds);
-      console.log(`Cover voting round: ${newCoverRounds}/${maxCoverRounds}`);
       
       if (newCoverRounds >= maxCoverRounds) {
         console.log('Cover voting completed, going to feedback');
@@ -213,81 +238,95 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const addTitle = (text: string) => {
-    const newTitle: Title = {
-      id: `title-${Date.now()}`,
-      text,
-      globalScore: 1000,
-      localScore: 1000,
-      isActive: true,
-      voteCount: 0
-    };
-    setTitles(prev => [...prev, newTitle]);
+  const addTitle = async (text: string) => {
+    const newTitle = await titleService.addTitle(text);
+    if (newTitle) {
+      setTitles(prev => [...prev, newTitle]);
+    }
   };
 
-  const addCover = (imageUrl: string) => {
-    const newCover: CoverImage = {
-      id: `cover-${Date.now()}`,
-      imageUrl,
-      globalScore: 1000,
-      localScore: 1000,
-      isActive: true,
-      voteCount: 0
-    };
-    setCovers(prev => [...prev, newCover]);
+  const addCover = async (imageUrl: string) => {
+    const newCover = await coverService.addCover(imageUrl);
+    if (newCover) {
+      setCovers(prev => [...prev, newCover]);
+    }
   };
 
-  const deactivateItem = (itemType: 'title' | 'cover', id: string) => {
+  const deactivateItem = async (itemType: 'title' | 'cover', id: string) => {
     if (itemType === 'title') {
-      setTitles(prev => prev.map(title => 
-        title.id === id ? { ...title, isActive: false } : title
-      ));
+      const success = await titleService.deactivateTitle(id);
+      if (success) {
+        setTitles(prev => prev.map(title => 
+          title.id === id ? { ...title, isActive: false } : title
+        ));
+      }
     } else {
-      setCovers(prev => prev.map(cover => 
-        cover.id === id ? { ...cover, isActive: false } : cover
-      ));
+      const success = await coverService.deactivateCover(id);
+      if (success) {
+        setCovers(prev => prev.map(cover => 
+          cover.id === id ? { ...cover, isActive: false } : cover
+        ));
+      }
     }
   };
 
-  const resetData = () => {
-    setCovers(prev => prev.map(cover => ({ ...cover, isActive: false })));
-    setVotes([]);
+  const resetData = async () => {
+    // This would deactivate all covers in the database
+    const activeCovers = covers.filter(c => c.isActive);
+    for (const cover of activeCovers) {
+      await coverService.deactivateCover(cover.id);
+    }
+    await loadInitialData();
   };
 
-  const exportCSV = (type: 'global' | 'local' | 'votes' | 'users') => {
-    let csvContent = '';
-    let filename = '';
-
-    switch (type) {
-      case 'global':
-        csvContent = 'Type,ID,Text/URL,Score,Votes\n';
-        titles.forEach(title => {
-          csvContent += `Title,${title.id},"${title.text}",${title.globalScore.toFixed(2)},${title.voteCount}\n`;
-        });
-        covers.forEach(cover => {
-          csvContent += `Cover,${cover.id},${cover.imageUrl},${cover.globalScore.toFixed(2)},${cover.voteCount}\n`;
-        });
-        filename = 'global-ranking.csv';
-        break;
-      case 'votes':
-        csvContent = 'ID,User ID,User Name,Item Type,Winner ID,Loser ID,Timestamp\n';
-        votes.forEach(vote => {
-          const userName = vote.userId === 'admin' ? 'Administrator' : 
-                          vote.userId === currentUser?.id ? currentUser?.name || 'Unknown' : 
-                          `User ${vote.userId.slice(-4)}`;
-          csvContent += `${vote.id},${vote.userId},"${userName}",${vote.itemType},${vote.winnerItemId},${vote.loserItemId},${vote.timestamp.toISOString()}\n`;
-        });
-        filename = 'votes-log.csv';
-        break;
-    }
-
-    const blob = new Blob([csvContent], { type: 'text/csv' });
+  const downloadCSV = (content: string, filename: string) => {
+    const blob = new Blob([content], { type: 'text/csv' });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
     a.download = filename;
     a.click();
     window.URL.revokeObjectURL(url);
+  };
+
+  const exportCSV = async (type: 'global' | 'local' | 'votes' | 'users') => {
+    setIsLoading(true);
+    try {
+      let csvContent = '';
+      let filename = '';
+
+      switch (type) {
+        case 'global':
+          csvContent = await exportService.exportGlobalRankingsCSV();
+          filename = 'global-ranking.csv';
+          break;
+        case 'votes':
+          csvContent = await exportService.exportVotesCSV();
+          filename = 'votes-log.csv';
+          break;
+        case 'users':
+          csvContent = await exportService.exportAllUsersCSV();
+          filename = 'all-users-data.csv';
+          break;
+        case 'local':
+          // Local rankings based on current user session
+          csvContent = 'Type,ID,Text/URL,Local Score\n';
+          titles.forEach(title => {
+            csvContent += `Title,"${title.id}","${title.text}",${title.localScore.toFixed(2)}\n`;
+          });
+          covers.forEach(cover => {
+            csvContent += `Cover,"${cover.id}","${cover.imageUrl}",${cover.localScore.toFixed(2)}\n`;
+          });
+          filename = 'local-ranking.csv';
+          break;
+      }
+
+      downloadCSV(csvContent, filename);
+    } catch (error) {
+      console.error('Error exporting CSV:', error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -310,7 +349,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       resetData,
       exportCSV,
       startNewSession,
-      refreshRankings
+      refreshRankings,
+      saveSurveyAnswers
     }}>
       {children}
     </AppContext.Provider>

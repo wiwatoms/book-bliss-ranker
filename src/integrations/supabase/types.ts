@@ -9,7 +9,160 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      covers: {
+        Row: {
+          created_at: string
+          global_score: number
+          id: string
+          image_url: string
+          is_active: boolean
+          vote_count: number
+        }
+        Insert: {
+          created_at?: string
+          global_score?: number
+          id?: string
+          image_url: string
+          is_active?: boolean
+          vote_count?: number
+        }
+        Update: {
+          created_at?: string
+          global_score?: number
+          id?: string
+          image_url?: string
+          is_active?: boolean
+          vote_count?: number
+        }
+        Relationships: []
+      }
+      survey_answers: {
+        Row: {
+          created_at: string
+          id: string
+          interest_level: number
+          reading_habits: string[]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          interest_level: number
+          reading_habits: string[]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          interest_level?: number
+          reading_habits?: string[]
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "survey_answers_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      titles: {
+        Row: {
+          created_at: string
+          global_score: number
+          id: string
+          is_active: boolean
+          text: string
+          vote_count: number
+        }
+        Insert: {
+          created_at?: string
+          global_score?: number
+          id?: string
+          is_active?: boolean
+          text: string
+          vote_count?: number
+        }
+        Update: {
+          created_at?: string
+          global_score?: number
+          id?: string
+          is_active?: boolean
+          text?: string
+          vote_count?: number
+        }
+        Relationships: []
+      }
+      users: {
+        Row: {
+          completed_steps: number
+          created_at: string
+          feedback: string | null
+          id: string
+          is_admin: boolean
+          name: string
+        }
+        Insert: {
+          completed_steps?: number
+          created_at?: string
+          feedback?: string | null
+          id?: string
+          is_admin?: boolean
+          name: string
+        }
+        Update: {
+          completed_steps?: number
+          created_at?: string
+          feedback?: string | null
+          id?: string
+          is_admin?: boolean
+          name?: string
+        }
+        Relationships: []
+      }
+      votes: {
+        Row: {
+          id: string
+          item_type: string
+          local_loser_score: number
+          local_winner_score: number
+          loser_item_id: string
+          timestamp: string
+          user_id: string
+          winner_item_id: string
+        }
+        Insert: {
+          id?: string
+          item_type: string
+          local_loser_score: number
+          local_winner_score: number
+          loser_item_id: string
+          timestamp?: string
+          user_id: string
+          winner_item_id: string
+        }
+        Update: {
+          id?: string
+          item_type?: string
+          local_loser_score?: number
+          local_winner_score?: number
+          loser_item_id?: string
+          timestamp?: string
+          user_id?: string
+          winner_item_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "votes_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never

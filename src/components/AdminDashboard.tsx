@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -13,7 +14,8 @@ import {
   BarChart3, 
   Users,
   FileText,
-  Image as ImageIcon
+  Image as ImageIcon,
+  RefreshCw
 } from 'lucide-react';
 import { useApp } from '@/contexts/AppContext';
 
@@ -28,24 +30,32 @@ export function AdminDashboard() {
     resetData, 
     exportCSV,
     setCurrentStep,
-    currentUser
+    currentUser,
+    refreshRankings
   } = useApp();
 
   const [newTitle, setNewTitle] = useState('');
   const [newCoverUrl, setNewCoverUrl] = useState('');
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
-  const handleAddTitle = () => {
+  const handleAddTitle = async () => {
     if (newTitle.trim()) {
-      addTitle(newTitle.trim());
+      await addTitle(newTitle.trim());
       setNewTitle('');
     }
   };
 
-  const handleAddCover = () => {
+  const handleAddCover = async () => {
     if (newCoverUrl.trim()) {
-      addCover(newCoverUrl.trim());
+      await addCover(newCoverUrl.trim());
       setNewCoverUrl('');
     }
+  };
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    await refreshRankings();
+    setIsRefreshing(false);
   };
 
   const activeTitles = titles.filter(t => t.isActive);
@@ -68,12 +78,22 @@ export function AdminDashboard() {
             <h1 className="text-3xl font-bold text-gray-900">Admin Dashboard</h1>
             <p className="text-gray-600">Verwaltung der Inhalte und Datenanalyse</p>
           </div>
-          <Button 
-            onClick={() => setCurrentStep('start')}
-            variant="outline"
-          >
-            Zurück zur Startseite
-          </Button>
+          <div className="flex gap-2">
+            <Button 
+              onClick={handleRefresh}
+              variant="outline"
+              disabled={isRefreshing}
+            >
+              <RefreshCw className={`w-4 h-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
+              {isRefreshing ? 'Aktualisierung...' : 'Daten aktualisieren'}
+            </Button>
+            <Button 
+              onClick={() => setCurrentStep('start')}
+              variant="outline"
+            >
+              Zurück zur Startseite
+            </Button>
+          </div>
         </div>
 
         {/* Statistics Cards */}
@@ -118,8 +138,10 @@ export function AdminDashboard() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600">Aktive Nutzer</p>
-                  <p className="text-2xl font-bold text-gray-900">1</p>
+                  <p className="text-sm font-medium text-gray-600">Globaler Top Titel</p>
+                  <p className="text-sm font-bold text-gray-900">
+                    {activeTitles.sort((a, b) => b.globalScore - a.globalScore)[0]?.text.slice(0, 20) || 'N/A'}...
+                  </p>
                 </div>
                 <Users className="w-8 h-8 text-orange-500" />
               </div>
@@ -165,7 +187,7 @@ export function AdminDashboard() {
                         <div className="flex-1">
                           <p className="font-medium">{title.text}</p>
                           <p className="text-sm text-gray-600">
-                            Score: {Math.round(title.globalScore)} | Votes: {title.voteCount}
+                            Global Score: {Math.round(title.globalScore)} | Votes: {title.voteCount}
                           </p>
                         </div>
                         {title.isActive && (
@@ -216,7 +238,7 @@ export function AdminDashboard() {
                           />
                           <div>
                             <p className="text-sm text-gray-600">
-                              Score: {Math.round(cover.globalScore)} | Votes: {cover.voteCount}
+                              Global Score: {Math.round(cover.globalScore)} | Votes: {cover.voteCount}
                             </p>
                           </div>
                         </div>
@@ -240,7 +262,7 @@ export function AdminDashboard() {
           <TabsContent value="votes">
             <Card>
               <CardHeader>
-                <CardTitle>Stimmen-Log</CardTitle>
+                <CardTitle>Stimmen-Log (letzte 20)</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-2 max-h-96 overflow-y-auto">
@@ -268,6 +290,9 @@ export function AdminDashboard() {
             <Card>
               <CardHeader>
                 <CardTitle>Daten exportieren</CardTitle>
+                <p className="text-sm text-gray-600">
+                  Exportieren Sie verschiedene Datentypen als CSV-Dateien
+                </p>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -280,12 +305,40 @@ export function AdminDashboard() {
                   </Button>
                   
                   <Button 
+                    onClick={() => exportCSV('local')}
+                    className="flex items-center gap-2"
+                    variant="outline"
+                  >
+                    <Download className="w-4 h-4" />
+                    Lokales Ranking (CSV)
+                  </Button>
+                  
+                  <Button 
                     onClick={() => exportCSV('votes')}
                     className="flex items-center gap-2"
                   >
                     <Download className="w-4 h-4" />
-                    Stimmen-Log (CSV)
+                    Alle Stimmen (CSV)
                   </Button>
+
+                  <Button 
+                    onClick={() => exportCSV('users')}
+                    className="flex items-center gap-2"
+                    variant="secondary"
+                  >
+                    <Download className="w-4 h-4" />
+                    Alle Nutzer-Daten (CSV)
+                  </Button>
+                </div>
+                
+                <div className="mt-6 p-4 bg-blue-50 rounded-lg">
+                  <h4 className="font-medium text-blue-900 mb-2">CSV-Inhalte:</h4>
+                  <ul className="text-sm text-blue-800 space-y-1">
+                    <li><strong>Globales Ranking:</strong> Titel/Cover mit globalen Scores und Abstimmungsanzahl</li>
+                    <li><strong>Lokales Ranking:</strong> Titel/Cover mit lokalen Scores der aktuellen Session</li>
+                    <li><strong>Alle Stimmen:</strong> Vollständiges Log aller Abstimmungen mit Nutzer-Info</li>
+                    <li><strong>Alle Nutzer-Daten:</strong> Nutzer-Profile, Umfrage-Antworten und Abstimmungsstatistiken</li>
+                  </ul>
                 </div>
               </CardContent>
             </Card>
@@ -310,8 +363,8 @@ export function AdminDashboard() {
                     </DialogHeader>
                     <div className="space-y-4">
                       <p className="text-gray-600">
-                        Diese Aktion wird alle globalen Cover als inaktiv markieren und das Stimmen-Log löschen. 
-                        Private Nutzerdaten bleiben erhalten.
+                        Diese Aktion wird alle aktiven Cover als inaktiv markieren. 
+                        Titel, Nutzer-Daten und das Stimmen-Log bleiben erhalten.
                       </p>
                       <div className="flex gap-2 justify-end">
                         <DialogTrigger asChild>
