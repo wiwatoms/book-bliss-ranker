@@ -27,7 +27,7 @@ const AppContext = createContext<AppContextType | undefined>(undefined);
 
 const INITIAL_TITLES = [
   "Drei Minuten und ein ganzes Leben",
-  "Der Duft, der bleibt",
+  "Der Duft, der bleibt", 
   "Fenster zur Wüste, Türen zum Meer",
   "Tradition ist, pünktlich zu sterben",
   "Jenseits von Datteln",
@@ -154,7 +154,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       setCoverVotingRounds(prev => prev + 1);
       
       if (coverVotingRounds + 1 >= maxCoverRounds) {
-        setCurrentStep('dashboard');
+        // Normal users go to ranking, admins can access dashboard separately
+        setCurrentStep('ranking');
       }
     }
   };

@@ -24,6 +24,8 @@ function AppContent() {
         return <ComparisonView type="title" />;
       case 'covers':
         return <ComparisonView type="cover" />;
+      case 'ranking':
+        return <RankingView />;
       case 'dashboard':
         return <AdminDashboard />;
       default:
