@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User, Title, CoverImage, Vote, AppStep } from '@/types';
 
@@ -9,7 +8,9 @@ interface AppContextType {
   covers: CoverImage[];
   votes: Vote[];
   titleVotingRounds: number;
+  coverVotingRounds: number;
   maxTitleRounds: number;
+  maxCoverRounds: number;
   
   // Actions
   setCurrentUser: (user: User) => void;
@@ -53,7 +54,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [covers, setCovers] = useState<CoverImage[]>([]);
   const [votes, setVotes] = useState<Vote[]>([]);
   const [titleVotingRounds, setTitleVotingRounds] = useState(0);
+  const [coverVotingRounds, setCoverVotingRounds] = useState(0);
   const maxTitleRounds = 12;
+  const maxCoverRounds = 12;
 
   // Initialize data
   useEffect(() => {
@@ -147,6 +150,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         }
         return cover;
       }));
+
+      setCoverVotingRounds(prev => prev + 1);
+      
+      if (coverVotingRounds + 1 >= maxCoverRounds) {
+        setCurrentStep('dashboard');
+      }
     }
   };
 
@@ -232,7 +241,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       covers,
       votes,
       titleVotingRounds,
+      coverVotingRounds,
       maxTitleRounds,
+      maxCoverRounds,
       setCurrentUser,
       setCurrentStep,
       submitVote,

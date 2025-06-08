@@ -1,86 +1,130 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { BookOpen, Star, Users } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { BookOpen, ArrowRight, Settings } from 'lucide-react';
 import { useApp } from '@/contexts/AppContext';
+import { User } from '@/types';
 
 export function StartScreen() {
-  const { setCurrentStep } = useApp();
+  const { setCurrentUser, setCurrentStep } = useApp();
+  const [showAdminLogin, setShowAdminLogin] = useState(false);
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
 
-  const handleStartAsUser = () => {
+  const handleStartRating = () => {
     setCurrentStep('name');
   };
 
   const handleAdminLogin = () => {
-    setCurrentStep('dashboard');
+    if (username === 'tom' && password === 'datteln') {
+      const adminUser: User = {
+        id: 'admin',
+        name: 'Administrator',
+        isAdmin: true,
+        createdAt: new Date(),
+        completedSteps: 4
+      };
+      setCurrentUser(adminUser);
+      setCurrentStep('dashboard');
+    } else {
+      alert('Ungültige Anmeldedaten');
+    }
   };
 
   return (
     <div className="min-h-screen flex items-center justify-center p-6">
-      <div className="max-w-4xl w-full">
-        <div className="text-center mb-12">
-          <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full mb-6">
+      <Card className="w-full max-w-2xl">
+        <CardHeader className="text-center">
+          <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full mx-auto mb-6">
             <BookOpen className="w-10 h-10 text-white" />
           </div>
-          <h1 className="text-4xl font-bold text-gray-900 mb-4">
-            Image & Title Ranker
-          </h1>
-          <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-            Bewerten Sie Buchtitel und Cover-Bilder durch spielerische paarweise Vergleiche.
-            Helfen Sie dabei, die attraktivsten Designs zu ermitteln!
+          <CardTitle className="text-3xl mb-4">
+            Willkommen zum Buch-Bewertungsportal
+          </CardTitle>
+          <p className="text-lg text-gray-600">
+            Helfen Sie uns dabei, die attraktivsten Buchtitel und Cover zu finden
           </p>
-        </div>
-
-        <div className="grid md:grid-cols-2 gap-8 max-w-3xl mx-auto">
-          <Card className="group hover:shadow-xl transition-all duration-300 cursor-pointer border-2 hover:border-blue-200" onClick={handleStartAsUser}>
-            <CardContent className="p-8 text-center">
-              <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-100 rounded-full mb-4 group-hover:bg-blue-200 transition-colors">
-                <Star className="w-8 h-8 text-blue-600" />
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {!showAdminLogin ? (
+            <>
+              <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg p-6">
+                <h3 className="text-xl font-semibold mb-3">Wie funktioniert es?</h3>
+                <ul className="space-y-2 text-gray-700">
+                  <li className="flex items-center">
+                    <span className="w-6 h-6 bg-blue-500 text-white rounded-full flex items-center justify-center text-sm mr-3">1</span>
+                    Kurze Umfrage zu Ihren Lesegewohnheiten
+                  </li>
+                  <li className="flex items-center">
+                    <span className="w-6 h-6 bg-purple-500 text-white rounded-full flex items-center justify-center text-sm mr-3">2</span>
+                    12 Titel-Vergleiche bewerten
+                  </li>
+                  <li className="flex items-center">
+                    <span className="w-6 h-6 bg-pink-500 text-white rounded-full flex items-center justify-center text-sm mr-3">3</span>
+                    12 Cover-Vergleiche bewerten
+                  </li>
+                  <li className="flex items-center">
+                    <span className="w-6 h-6 bg-green-500 text-white rounded-full flex items-center justify-center text-sm mr-3">4</span>
+                    Ihre persönlichen und globalen Rankings ansehen
+                  </li>
+                </ul>
               </div>
-              <h3 className="text-xl font-semibold mb-3">Als Bewerter starten</h3>
-              <p className="text-gray-600 mb-6">
-                Nehmen Sie an der Bewertung teil und helfen Sie dabei, die besten Titel und Cover zu finden.
-              </p>
-              <Button className="w-full bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white">
-                Jetzt starten
-              </Button>
-            </CardContent>
-          </Card>
 
-          <Card className="group hover:shadow-xl transition-all duration-300 cursor-pointer border-2 hover:border-purple-200" onClick={handleAdminLogin}>
-            <CardContent className="p-8 text-center">
-              <div className="inline-flex items-center justify-center w-16 h-16 bg-purple-100 rounded-full mb-4 group-hover:bg-purple-200 transition-colors">
-                <Users className="w-8 h-8 text-purple-600" />
+              <Button 
+                onClick={handleStartRating}
+                className="w-full bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-lg py-6"
+              >
+                Als Bewerter starten
+                <ArrowRight className="w-5 h-5 ml-2" />
+              </Button>
+
+              <div className="text-center">
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  onClick={() => setShowAdminLogin(!showAdminLogin)}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <Settings className="w-4 h-4 mr-1" />
+                </Button>
               </div>
-              <h3 className="text-xl font-semibold mb-3">Admin-Login</h3>
-              <p className="text-gray-600 mb-6">
-                Verwalten Sie Inhalte, analysieren Sie Daten und exportieren Sie Ergebnisse.
-              </p>
-              <Button variant="outline" className="w-full border-purple-300 text-purple-600 hover:bg-purple-50">
-                Admin-Bereich
-              </Button>
-            </CardContent>
-          </Card>
-        </div>
-
-        <div className="mt-12 text-center">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-2xl mx-auto">
-            <div>
-              <div className="text-2xl font-bold text-blue-600 mb-2">3</div>
-              <div className="text-sm text-gray-600">Einfache Schritte</div>
+            </>
+          ) : (
+            <div className="space-y-4">
+              <h3 className="text-xl font-semibold text-center">Admin-Login</h3>
+              <div className="space-y-3">
+                <Input
+                  type="text"
+                  placeholder="Benutzername"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                />
+                <Input
+                  type="password"
+                  placeholder="Passwort"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  onKeyPress={(e) => e.key === 'Enter' && handleAdminLogin()}
+                />
+                <div className="flex gap-2">
+                  <Button onClick={handleAdminLogin} className="flex-1">
+                    Anmelden
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    onClick={() => setShowAdminLogin(false)}
+                    className="flex-1"
+                  >
+                    Abbrechen
+                  </Button>
+                </div>
+              </div>
             </div>
-            <div>
-              <div className="text-2xl font-bold text-purple-600 mb-2">12</div>
-              <div className="text-sm text-gray-600">Titel-Vergleiche</div>
-            </div>
-            <div>
-              <div className="text-2xl font-bold text-pink-600 mb-2">∞</div>
-              <div className="text-sm text-gray-600">Cover-Bewertungen</div>
-            </div>
-          </div>
-        </div>
-      </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }

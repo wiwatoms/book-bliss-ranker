@@ -8,17 +8,24 @@ interface LayoutProps {
 }
 
 export function Layout({ children, showProgress = false }: LayoutProps) {
-  const { currentStep, titleVotingRounds, maxTitleRounds } = useApp();
+  const { 
+    currentStep, 
+    titleVotingRounds, 
+    maxTitleRounds, 
+    coverVotingRounds, 
+    maxCoverRounds 
+  } = useApp();
 
   const getProgressPercentage = () => {
     switch (currentStep) {
       case 'name':
-        return 25;
+        return 12.5; // 1/8
       case 'survey':
-        return 50;
+        return 25; // 2/8
       case 'titles':
-        return 50 + (titleVotingRounds / maxTitleRounds) * 25;
+        return 25 + (titleVotingRounds / maxTitleRounds) * 37.5; // 2/8 + up to 3/8
       case 'covers':
+        return 62.5 + (coverVotingRounds / maxCoverRounds) * 37.5; // 5/8 + up to 3/8
       case 'dashboard':
         return 100;
       default:
@@ -29,13 +36,15 @@ export function Layout({ children, showProgress = false }: LayoutProps) {
   const getStepText = () => {
     switch (currentStep) {
       case 'name':
-        return 'Schritt 1 von 3: Name eingeben';
+        return 'Schritt 1 von 4: Name eingeben';
       case 'survey':
-        return 'Schritt 2 von 3: Umfrage';
+        return 'Schritt 2 von 4: Umfrage';
       case 'titles':
-        return `Schritt 3 von 3: Titel bewerten (${titleVotingRounds}/${maxTitleRounds})`;
+        return `Schritt 3 von 4: Titel bewerten (${titleVotingRounds}/${maxTitleRounds})`;
       case 'covers':
-        return 'Cover bewerten';
+        return `Schritt 4 von 4: Cover bewerten (${coverVotingRounds}/${maxCoverRounds})`;
+      case 'dashboard':
+        return 'Bewertung abgeschlossen - Ergebnisse';
       default:
         return '';
     }
@@ -56,6 +65,16 @@ export function Layout({ children, showProgress = false }: LayoutProps) {
                 style={{ width: `${getProgressPercentage()}%` }}
               />
             </div>
+            {currentStep === 'titles' && (
+              <div className="mt-2 text-xs text-gray-600">
+                Nach {maxTitleRounds} Titel-Bewertungen geht es automatisch zu den Cover-Bewertungen
+              </div>
+            )}
+            {currentStep === 'covers' && (
+              <div className="mt-2 text-xs text-gray-600">
+                Nach {maxCoverRounds} Cover-Bewertungen sehen Sie die Ergebnisse
+              </div>
+            )}
           </div>
         </div>
       )}

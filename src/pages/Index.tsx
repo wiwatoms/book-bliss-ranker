@@ -31,7 +31,7 @@ function AppContent() {
     }
   };
 
-  const showProgress = ['name', 'survey', 'titles'].includes(currentStep);
+  const showProgress = ['name', 'survey', 'titles', 'covers'].includes(currentStep);
 
   return (
     <Layout showProgress={showProgress}>

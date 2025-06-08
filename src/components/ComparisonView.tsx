@@ -17,7 +17,9 @@ export function ComparisonView({ type }: ComparisonViewProps) {
     submitVote, 
     setCurrentStep, 
     titleVotingRounds, 
-    maxTitleRounds 
+    maxTitleRounds,
+    coverVotingRounds,
+    maxCoverRounds
   } = useApp();
   
   const [currentPair, setCurrentPair] = useState<ComparisonPair<Title | CoverImage> | null>(null);
@@ -65,7 +67,8 @@ export function ComparisonView({ type }: ComparisonViewProps) {
   }
 
   const isTitle = type === 'title';
-  const showProgress = isTitle && titleVotingRounds < maxTitleRounds;
+  const currentRounds = isTitle ? titleVotingRounds : coverVotingRounds;
+  const maxRounds = isTitle ? maxTitleRounds : maxCoverRounds;
 
   return (
     <div className="min-h-screen flex items-center justify-center p-6">
@@ -76,20 +79,18 @@ export function ComparisonView({ type }: ComparisonViewProps) {
           </h1>
           <p className="text-gray-600">
             {isTitle 
-              ? `Welcher Titel gefällt Ihnen besser? (${titleVotingRounds}/${maxTitleRounds})`
-              : 'Welches Cover gefällt Ihnen besser?'
+              ? `Welcher Titel gefällt Ihnen besser? (${currentRounds}/${maxRounds})`
+              : `Welches Cover gefällt Ihnen besser? (${currentRounds}/${maxRounds})`
             }
           </p>
-          {isTitle && showProgress && (
-            <div className="mt-4 max-w-md mx-auto">
-              <div className="w-full bg-gray-200 rounded-full h-2">
-                <div 
-                  className="bg-gradient-to-r from-blue-500 to-purple-600 h-2 rounded-full transition-all duration-500"
-                  style={{ width: `${(titleVotingRounds / maxTitleRounds) * 100}%` }}
-                />
-              </div>
+          <div className="mt-4 max-w-md mx-auto">
+            <div className="w-full bg-gray-200 rounded-full h-2">
+              <div 
+                className="bg-gradient-to-r from-blue-500 to-purple-600 h-2 rounded-full transition-all duration-500"
+                style={{ width: `${(currentRounds / maxRounds) * 100}%` }}
+              />
             </div>
-          )}
+          </div>
         </div>
 
         <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
@@ -119,7 +120,7 @@ export function ComparisonView({ type }: ComparisonViewProps) {
                     <img 
                       src={(currentPair.itemA as CoverImage).imageUrl} 
                       alt="Cover A"
-                      className="w-full h-80 object-cover group-hover:scale-110 transition-transform duration-300"
+                      className="w-full h-96 object-contain bg-white group-hover:scale-105 transition-transform duration-300"
                     />
                   </div>
                   <Button 
@@ -159,7 +160,7 @@ export function ComparisonView({ type }: ComparisonViewProps) {
                     <img 
                       src={(currentPair.itemB as CoverImage).imageUrl} 
                       alt="Cover B"
-                      className="w-full h-80 object-cover group-hover:scale-110 transition-transform duration-300"
+                      className="w-full h-96 object-contain bg-white group-hover:scale-105 transition-transform duration-300"
                     />
                   </div>
                   <Button 
@@ -174,18 +175,16 @@ export function ComparisonView({ type }: ComparisonViewProps) {
           </Card>
         </div>
 
-        {!isTitle && (
-          <div className="text-center mt-8">
-            <Button 
-              onClick={handleViewRankings}
-              variant="ghost" 
-              className="text-gray-600 hover:text-gray-900"
-            >
-              <Eye className="w-4 h-4 mr-2" />
-              Rankings anzeigen
-            </Button>
-          </div>
-        )}
+        <div className="text-center mt-8">
+          <Button 
+            onClick={handleViewRankings}
+            variant="ghost" 
+            className="text-gray-600 hover:text-gray-900"
+          >
+            <Eye className="w-4 h-4 mr-2" />
+            Rankings anzeigen
+          </Button>
+        </div>
       </div>
     </div>
   );

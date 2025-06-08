@@ -28,7 +28,8 @@ export function AdminDashboard() {
     deactivateItem, 
     resetData, 
     exportCSV,
-    setCurrentStep 
+    setCurrentStep,
+    currentUser
   } = useApp();
 
   const [newTitle, setNewTitle] = useState('');
@@ -51,6 +52,13 @@ export function AdminDashboard() {
   const activeTitles = titles.filter(t => t.isActive);
   const activeCovers = covers.filter(c => c.isActive);
   const totalVotes = votes.length;
+
+  // Get user name from vote ID (simple mapping for demo)
+  const getUserName = (userId: string) => {
+    if (userId === 'admin') return 'Administrator';
+    if (currentUser && userId === currentUser.id) return currentUser.name;
+    return `User ${userId.slice(-4)}`;
+  };
 
   return (
     <div className="min-h-screen p-6 bg-gray-50">
@@ -243,7 +251,7 @@ export function AdminDashboard() {
                           {vote.itemType === 'title' ? 'Titel' : 'Cover'} Bewertung
                         </p>
                         <p className="text-sm text-gray-600">
-                          Gewinner: {vote.winnerItemId} | Verlierer: {vote.loserItemId}
+                          Nutzer: {getUserName(vote.userId)} | Gewinner: {vote.winnerItemId} | Verlierer: {vote.loserItemId}
                         </p>
                       </div>
                       <div className="text-sm text-gray-500">
