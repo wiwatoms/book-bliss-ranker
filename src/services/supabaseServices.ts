@@ -101,7 +101,7 @@ export const titleService = {
     return data.map(title => ({
       id: title.id,
       text: title.text,
-      globalScore: parseFloat(title.global_score),
+      globalScore: Number(title.global_score),
       localScore: 1000, // Reset for each user session
       isActive: title.is_active,
       voteCount: title.vote_count
@@ -112,7 +112,7 @@ export const titleService = {
     const { error } = await supabase
       .from('titles')
       .update({
-        global_score: newScore,
+        global_score: newScore.toString(),
         vote_count: voteCount
       })
       .eq('id', titleId);
@@ -139,7 +139,7 @@ export const titleService = {
     return {
       id: data.id,
       text: data.text,
-      globalScore: parseFloat(data.global_score),
+      globalScore: Number(data.global_score),
       localScore: 1000,
       isActive: data.is_active,
       voteCount: data.vote_count
@@ -175,7 +175,7 @@ export const coverService = {
     return data.map(cover => ({
       id: cover.id,
       imageUrl: cover.image_url,
-      globalScore: parseFloat(cover.global_score),
+      globalScore: Number(cover.global_score),
       localScore: 1000, // Reset for each user session
       isActive: cover.is_active,
       voteCount: cover.vote_count
@@ -186,7 +186,7 @@ export const coverService = {
     const { error } = await supabase
       .from('covers')
       .update({
-        global_score: newScore,
+        global_score: newScore.toString(),
         vote_count: voteCount
       })
       .eq('id', coverId);
@@ -213,7 +213,7 @@ export const coverService = {
     return {
       id: data.id,
       imageUrl: data.image_url,
-      globalScore: parseFloat(data.global_score),
+      globalScore: Number(data.global_score),
       localScore: 1000,
       isActive: data.is_active,
       voteCount: data.vote_count
