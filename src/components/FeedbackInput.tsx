@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
-import { MessageSquare, ArrowRight, Skip } from 'lucide-react';
+import { MessageSquare, ArrowRight, SkipForward } from 'lucide-react';
 import { useApp } from '@/contexts/AppContext';
 
 export function FeedbackInput() {
@@ -42,7 +42,7 @@ export function FeedbackInput() {
           </div>
           <CardTitle className="text-2xl mb-2">Fast geschafft!</CardTitle>
           <p className="text-gray-600">
-            Noch etwas, das dir aufgefallen ist oder du mitgeben möchtest?
+            Noch etwas, das Dir aufgefallen ist oder Du mitgeben möchtest?
           </p>
         </CardHeader>
         <CardContent className="space-y-6">
@@ -61,7 +61,7 @@ export function FeedbackInput() {
               variant="outline"
               className="flex-1"
             >
-              <Skip className="w-4 h-4 mr-2" />
+              <SkipForward className="w-4 h-4 mr-2" />
               Überspringen
             </Button>
             <Button 
