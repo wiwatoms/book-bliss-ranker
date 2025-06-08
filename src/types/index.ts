@@ -45,4 +45,4 @@ export interface ComparisonPair<T> {
   itemB: T;
 }
 
-export type AppStep = 'start' | 'name' | 'survey' | 'titles' | 'covers' | 'dashboard';
+export type AppStep = 'start' | 'name' | 'survey' | 'titles' | 'covers' | 'ranking' | 'dashboard';
