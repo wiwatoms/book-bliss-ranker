@@ -41,10 +41,10 @@ export function StartScreen() {
             <BookOpen className="w-10 h-10 text-white" />
           </div>
           <CardTitle className="text-3xl mb-4">
-            Willkommen zum Buch-Bewertungsportal
+            Eure Meinung ist mir wichtig!
           </CardTitle>
           <p className="text-lg text-gray-600">
-            Helfen Sie uns dabei, die attraktivsten Buchtitel und Cover zu finden
+            Für mein Buchprojekt bitte ich um euer Feedback zu Titel und Cover. Danke!
           </p>
         </CardHeader>
         <CardContent className="space-y-6">

@@ -3,16 +3,14 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Trophy, Medal, Award, BarChart, Star } from 'lucide-react';
+import { Trophy, Medal, Award, BarChart, Star, RefreshCw } from 'lucide-react';
 import { useApp } from '@/contexts/AppContext';
 
 export function RankingView() {
-  const { titles, covers, currentUser, startNewSession } = useApp();
+  const { titles, covers, currentUser, startNewSession, refreshRankings } = useApp();
 
-  // Get user's personal rankings based on their votes
+  // Get user's personal rankings based on their local scores
   const getUserPersonalRankings = () => {
-    // For demo purposes, we'll create a simple personal ranking
-    // In a real app, this would be calculated from the user's voting history
     const personalTitles = [...titles].filter(t => t.isActive).sort((a, b) => b.localScore - a.localScore);
     const personalCovers = [...covers].filter(c => c.isActive).sort((a, b) => b.localScore - a.localScore);
     
@@ -180,6 +178,17 @@ export function RankingView() {
           </TabsContent>
 
           <TabsContent value="global" className="space-y-6">
+            <div className="text-center mb-4">
+              <Button 
+                onClick={refreshRankings}
+                variant="outline"
+                className="flex items-center gap-2"
+              >
+                <RefreshCw className="w-4 h-4" />
+                Aktualisieren
+              </Button>
+            </div>
+            
             <div className="grid lg:grid-cols-2 gap-8">
               <Card>
                 <CardHeader>

@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User, Title, CoverImage, Vote, AppStep } from '@/types';
 
@@ -22,6 +23,7 @@ interface AppContextType {
   resetData: () => void;
   exportCSV: (type: 'global' | 'local' | 'votes' | 'users') => void;
   startNewSession: () => void;
+  refreshRankings: () => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -86,11 +88,22 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const startNewSession = () => {
-    console.log('Starting new session - resetting vote counters');
+    console.log('Starting new session - resetting vote counters and local scores for new user');
     setTitleVotingRounds(0);
     setCoverVotingRounds(0);
+    
+    // Reset local scores for new user session
+    setTitles(prev => prev.map(title => ({ ...title, localScore: 1000 })));
+    setCovers(prev => prev.map(cover => ({ ...cover, localScore: 1000 })));
+    
     setCurrentUser(null);
     setCurrentStep('start');
+  };
+
+  const refreshRankings = () => {
+    console.log('Refreshing rankings display');
+    // This function can be used to trigger a re-render of rankings
+    // In a real app, this might fetch fresh data from a server
   };
 
   const calculateNewScores = (winnerScore: number, loserScore: number, kFactor: number = 32) => {
@@ -124,15 +137,27 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         if (title.id === winnerId) {
           const loser = prev.find(t => t.id === loserId);
           if (loser) {
-            const { newWinnerScore } = calculateNewScores(title.globalScore, loser.globalScore);
-            return { ...title, globalScore: newWinnerScore, localScore: newWinnerScore, voteCount: title.voteCount + 1 };
+            const { newWinnerScore: newGlobalScore } = calculateNewScores(title.globalScore, loser.globalScore);
+            const { newWinnerScore: newLocalScore } = calculateNewScores(title.localScore, loser.localScore);
+            return { 
+              ...title, 
+              globalScore: newGlobalScore, 
+              localScore: newLocalScore, 
+              voteCount: title.voteCount + 1 
+            };
           }
         }
         if (title.id === loserId) {
           const winner = prev.find(t => t.id === winnerId);
           if (winner) {
-            const { newLoserScore } = calculateNewScores(winner.globalScore, title.globalScore);
-            return { ...title, globalScore: newLoserScore, localScore: newLoserScore, voteCount: title.voteCount + 1 };
+            const { newLoserScore: newGlobalScore } = calculateNewScores(winner.globalScore, title.globalScore);
+            const { newLoserScore: newLocalScore } = calculateNewScores(winner.localScore, title.localScore);
+            return { 
+              ...title, 
+              globalScore: newGlobalScore, 
+              localScore: newLocalScore, 
+              voteCount: title.voteCount + 1 
+            };
           }
         }
         return title;
@@ -151,15 +176,27 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         if (cover.id === winnerId) {
           const loser = prev.find(c => c.id === loserId);
           if (loser) {
-            const { newWinnerScore } = calculateNewScores(cover.globalScore, loser.globalScore);
-            return { ...cover, globalScore: newWinnerScore, localScore: newWinnerScore, voteCount: cover.voteCount + 1 };
+            const { newWinnerScore: newGlobalScore } = calculateNewScores(cover.globalScore, loser.globalScore);
+            const { newWinnerScore: newLocalScore } = calculateNewScores(cover.localScore, loser.localScore);
+            return { 
+              ...cover, 
+              globalScore: newGlobalScore, 
+              localScore: newLocalScore, 
+              voteCount: cover.voteCount + 1 
+            };
           }
         }
         if (cover.id === loserId) {
           const winner = prev.find(c => c.id === winnerId);
           if (winner) {
-            const { newLoserScore } = calculateNewScores(winner.globalScore, cover.globalScore);
-            return { ...cover, globalScore: newLoserScore, localScore: newLoserScore, voteCount: cover.voteCount + 1 };
+            const { newLoserScore: newGlobalScore } = calculateNewScores(winner.globalScore, cover.globalScore);
+            const { newLoserScore: newLocalScore } = calculateNewScores(winner.localScore, cover.localScore);
+            return { 
+              ...cover, 
+              globalScore: newGlobalScore, 
+              localScore: newLocalScore, 
+              voteCount: cover.voteCount + 1 
+            };
           }
         }
         return cover;
@@ -273,7 +310,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       deactivateItem,
       resetData,
       exportCSV,
-      startNewSession
+      startNewSession,
+      refreshRankings
     }}>
       {children}
     </AppContext.Provider>
