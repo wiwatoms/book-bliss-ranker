@@ -556,7 +556,14 @@ export const voteService = {
       throw error;
     }
 
-    return data || [];
+    return (data || []).map(vote => ({
+      id: vote.id,
+      userId: vote.user_id,
+      itemType: vote.item_type as 'title' | 'cover',
+      winnerItemId: vote.winner_item_id,
+      loserItemId: vote.loser_item_id,
+      timestamp: new Date(vote.timestamp)
+    }));
   },
 
   async saveVote(vote: {
