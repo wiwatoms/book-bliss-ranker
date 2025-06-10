@@ -3,14 +3,15 @@ import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { RefreshCw, RotateCcw, Trash2, Download } from 'lucide-react';
+import { RefreshCw, Download } from 'lucide-react';
 import { useApp } from '@/contexts/AppContext';
-import { votingRoundService } from '@/services/supabaseServices';
+import { votingRoundService, titleService, coverService, voteService, surveyService, userService } from '@/services/supabaseServices';
 import { replaceCoversWithNewOnes } from '@/utils/coverUpload';
 import { AdminStatistics } from './admin/AdminStatistics';
 import { ContentManagement } from './admin/ContentManagement';
+import { DataManagement } from './admin/DataManagement';
 import { VotesLog } from './admin/VotesLog';
+import { toast } from 'sonner';
 
 export function AdminDashboard() {
   const { 
@@ -20,7 +21,6 @@ export function AdminDashboard() {
     addTitle, 
     addCover, 
     deactivateItem, 
-    resetData, 
     exportCSV,
     setCurrentStep,
     currentUser,
@@ -35,7 +35,6 @@ export function AdminDashboard() {
 
   useEffect(() => {
     loadCurrentRound();
-    // Force an initial refresh to ensure covers are loaded
     handleRefresh();
   }, []);
 
@@ -49,21 +48,19 @@ export function AdminDashboard() {
     console.log('Starting comprehensive refresh...');
     
     try {
-      // Force refresh covers first to clear any cache issues
       console.log('Step 1: Force refreshing covers...');
       await forceRefreshCovers();
       
-      // Then refresh rankings
       console.log('Step 2: Refreshing rankings...');
       await refreshRankings();
       
-      // Reload current round info
       console.log('Step 3: Reloading round info...');
       await loadCurrentRound();
       
       console.log('Comprehensive refresh completed successfully');
     } catch (error) {
       console.error('Error during refresh:', error);
+      toast.error('Fehler beim Aktualisieren der Daten');
     } finally {
       setIsRefreshing(false);
     }
@@ -77,8 +74,10 @@ export function AdminDashboard() {
       console.log('New round started successfully');
       await loadCurrentRound();
       await handleRefresh();
+      toast.success(`Neue Runde ${currentRound + 1} gestartet`);
     } else {
       console.error('Failed to start new round');
+      toast.error('Fehler beim Starten der neuen Runde');
     }
     setIsStartingNewRound(false);
   };
@@ -90,10 +89,62 @@ export function AdminDashboard() {
     if (success) {
       console.log('Covers replaced successfully, forcing refresh...');
       await handleRefresh();
+      toast.success('Cover erfolgreich ersetzt');
     } else {
       console.error('Failed to replace covers');
+      toast.error('Fehler beim Ersetzen der Cover');
     }
     setIsReplacingCovers(false);
+  };
+
+  const handleFileUpload = async (file: File): Promise<string | null> => {
+    try {
+      // Create a simple URL for uploaded files
+      // In a real app, you'd upload to Supabase Storage
+      const formData = new FormData();
+      formData.append('file', file);
+      
+      // For now, we'll simulate an upload by creating a data URL
+      return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          resolve(e.target?.result as string);
+        };
+        reader.readAsDataURL(file);
+      });
+    } catch (error) {
+      console.error('Error uploading file:', error);
+      return null;
+    }
+  };
+
+  const handleDeleteItem = async (type: 'title' | 'cover', id: string) => {
+    try {
+      if (type === 'title') {
+        await titleService.deleteTitle(id);
+      } else {
+        await coverService.deleteCover(id);
+      }
+      await handleRefresh();
+    } catch (error) {
+      console.error(`Error deleting ${type}:`, error);
+      toast.error(`Fehler beim Löschen des ${type === 'title' ? 'Titels' : 'Covers'}`);
+    }
+  };
+
+  const handleHardReset = async () => {
+    try {
+      const success = await votingRoundService.hardReset();
+      if (success) {
+        await handleRefresh();
+        toast.success('Hard-Reset erfolgreich durchgeführt');
+      } else {
+        toast.error('Fehler beim Hard-Reset');
+      }
+    } catch (error) {
+      console.error('Error during hard reset:', error);
+      toast.error('Fehler beim Hard-Reset');
+    }
   };
 
   const activeTitles = titles.filter(t => t.isActive);
@@ -134,11 +185,11 @@ export function AdminDashboard() {
         />
 
         <Tabs defaultValue="content" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="content">Inhalte verwalten</TabsTrigger>
+            <TabsTrigger value="data">Daten verwalten</TabsTrigger>
             <TabsTrigger value="votes">Stimmen</TabsTrigger>
             <TabsTrigger value="export">Export</TabsTrigger>
-            <TabsTrigger value="settings">Einstellungen</TabsTrigger>
           </TabsList>
 
           <TabsContent value="content" className="space-y-6">
@@ -148,8 +199,24 @@ export function AdminDashboard() {
               onAddTitle={addTitle}
               onAddCover={addCover}
               onDeactivateItem={deactivateItem}
+              onDeleteItem={handleDeleteItem}
               onReplaceCovers={handleReplaceCovers}
+              onFileUpload={handleFileUpload}
               isReplacingCovers={isReplacingCovers}
+            />
+          </TabsContent>
+
+          <TabsContent value="data">
+            <DataManagement
+              onStartNewRound={handleStartNewRound}
+              onHardReset={handleHardReset}
+              onDeleteAllVotes={() => voteService.deleteAllVotes()}
+              onDeleteAllSurveyAnswers={() => surveyService.deleteAllSurveyAnswers()}
+              onDeleteAllUsers={() => userService.deleteAllUsers()}
+              onDeleteAllTitles={() => titleService.deleteAllTitles()}
+              onDeleteAllCovers={() => coverService.deleteAllCovers()}
+              isStartingNewRound={isStartingNewRound}
+              currentRound={currentRound}
             />
           </TabsContent>
 
@@ -211,77 +278,6 @@ export function AdminDashboard() {
                     <li><strong>Alle Nutzer-Daten:</strong> Nutzer-Profile, Umfrage-Antworten und Abstimmungsstatistiken</li>
                   </ul>
                 </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="settings">
-            <Card>
-              <CardHeader>
-                <CardTitle>Einstellungen</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <Dialog>
-                  <DialogTrigger asChild>
-                    <Button className="flex items-center gap-2 w-full">
-                      <RotateCcw className="w-4 h-4" />
-                      Neue Abstimmungsrunde starten
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent>
-                    <DialogHeader>
-                      <DialogTitle>Neue Abstimmungsrunde starten</DialogTitle>
-                    </DialogHeader>
-                    <div className="space-y-4">
-                      <p className="text-gray-600">
-                        Dies startet eine neue Abstimmungsrunde und setzt alle globalen Rankings zurück. 
-                        Alle bisherigen Stimmen bleiben erhalten und werden in den CSV-Exporten nach Runden getrennt.
-                      </p>
-                      <div className="flex gap-2 justify-end">
-                        <DialogTrigger asChild>
-                          <Button variant="outline">Abbrechen</Button>
-                        </DialogTrigger>
-                        <Button 
-                          onClick={handleStartNewRound}
-                          disabled={isStartingNewRound}
-                        >
-                          {isStartingNewRound ? 'Starte neue Runde...' : 'Neue Runde starten'}
-                        </Button>
-                      </div>
-                    </div>
-                  </DialogContent>
-                </Dialog>
-
-                <Dialog>
-                  <DialogTrigger asChild>
-                    <Button variant="destructive" className="flex items-center gap-2 w-full">
-                      <Trash2 className="w-4 h-4" />
-                      Daten-Reset durchführen
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent>
-                    <DialogHeader>
-                      <DialogTitle>Daten-Reset bestätigen</DialogTitle>
-                    </DialogHeader>
-                    <div className="space-y-4">
-                      <p className="text-gray-600">
-                        Diese Aktion wird alle aktiven Cover als inaktiv markieren. 
-                        Titel, Nutzer-Daten und das Stimmen-Log bleiben erhalten.
-                      </p>
-                      <div className="flex gap-2 justify-end">
-                        <DialogTrigger asChild>
-                          <Button variant="outline">Abbrechen</Button>
-                        </DialogTrigger>
-                        <Button 
-                          variant="destructive" 
-                          onClick={resetData}
-                        >
-                          Reset durchführen
-                        </Button>
-                      </div>
-                    </div>
-                  </DialogContent>
-                </Dialog>
               </CardContent>
             </Card>
           </TabsContent>

@@ -65,6 +65,19 @@ export const userService = {
       completedSteps: user.completed_steps,
       feedback: user.feedback
     }));
+  },
+
+  async deleteAllUsers(): Promise<boolean> {
+    const { error } = await supabase
+      .from('users')
+      .delete()
+      .neq('id', '00000000-0000-0000-0000-000000000000'); // Delete all
+
+    if (error) {
+      console.error('Error deleting all users:', error);
+      return false;
+    }
+    return true;
   }
 };
 
@@ -80,6 +93,19 @@ export const surveyService = {
 
     if (error) {
       console.error('Error saving survey answers:', error);
+      return false;
+    }
+    return true;
+  },
+
+  async deleteAllSurveyAnswers(): Promise<boolean> {
+    const { error } = await supabase
+      .from('survey_answers')
+      .delete()
+      .neq('id', '00000000-0000-0000-0000-000000000000'); // Delete all
+
+    if (error) {
+      console.error('Error deleting all survey answers:', error);
       return false;
     }
     return true;
@@ -157,6 +183,32 @@ export const titleService = {
       return false;
     }
     return true;
+  },
+
+  async deleteTitle(titleId: string): Promise<boolean> {
+    const { error } = await supabase
+      .from('titles')
+      .delete()
+      .eq('id', titleId);
+
+    if (error) {
+      console.error('Error deleting title:', error);
+      return false;
+    }
+    return true;
+  },
+
+  async deleteAllTitles(): Promise<boolean> {
+    const { error } = await supabase
+      .from('titles')
+      .delete()
+      .neq('id', '00000000-0000-0000-0000-000000000000'); // Delete all
+
+    if (error) {
+      console.error('Error deleting all titles:', error);
+      return false;
+    }
+    return true;
   }
 };
 
@@ -185,7 +237,6 @@ export const coverService = {
   async forceRefreshCovers(): Promise<CoverImage[]> {
     console.log('Force refreshing covers from database...');
     
-    // Add timestamp to force cache bypass
     const timestamp = Date.now();
     const { data, error } = await supabase
       .from('covers')
@@ -202,7 +253,7 @@ export const coverService = {
     
     return data.map(cover => ({
       id: cover.id,
-      imageUrl: `${cover.image_url}?v=${timestamp}`, // Add cache busting
+      imageUrl: `${cover.image_url}?v=${timestamp}`,
       globalScore: Number(cover.global_score),
       localScore: 1000,
       isActive: cover.is_active,
@@ -261,50 +312,35 @@ export const coverService = {
     return true;
   },
 
-  async replaceAllCovers(newCovers: string[]): Promise<boolean> {
-    try {
-      console.log('Starting database cover replacement process...');
-      
-      // First, deactivate ALL existing covers
-      const { error: deactivateError } = await supabase
-        .from('covers')
-        .update({ is_active: false })
-        .neq('id', '00000000-0000-0000-0000-000000000000'); // Update all records
+  async deleteCover(coverId: string): Promise<boolean> {
+    const { error } = await supabase
+      .from('covers')
+      .delete()
+      .eq('id', coverId);
 
-      if (deactivateError) {
-        console.error('Error deactivating existing covers:', deactivateError);
-        return false;
-      }
-
-      console.log('Deactivated all existing covers');
-
-      // Add new covers
-      const { error: insertError } = await supabase
-        .from('covers')
-        .insert(newCovers.map(url => ({ 
-          image_url: url,
-          is_active: true,
-          global_score: 1000,
-          vote_count: 0
-        })));
-
-      if (insertError) {
-        console.error('Error inserting new covers:', insertError);
-        return false;
-      }
-
-      console.log('Successfully added new covers to database');
-      return true;
-    } catch (error) {
-      console.error('Error in replaceAllCovers:', error);
+    if (error) {
+      console.error('Error deleting cover:', error);
       return false;
     }
+    return true;
+  },
+
+  async deleteAllCovers(): Promise<boolean> {
+    const { error } = await supabase
+      .from('covers')
+      .delete()
+      .neq('id', '00000000-0000-0000-0000-000000000000'); // Delete all
+
+    if (error) {
+      console.error('Error deleting all covers:', error);
+      return false;
+    }
+    return true;
   }
 };
 
 export const voteService = {
   async saveVote(vote: Omit<Vote, 'id' | 'timestamp'> & { localWinnerScore: number; localLoserScore: number }): Promise<boolean> {
-    // Get current active voting round
     const { data: roundData, error: roundError } = await supabase
       .from('voting_rounds')
       .select('id')
@@ -354,6 +390,19 @@ export const voteService = {
       loserItemId: vote.loser_item_id,
       timestamp: new Date(vote.timestamp)
     }));
+  },
+
+  async deleteAllVotes(): Promise<boolean> {
+    const { error } = await supabase
+      .from('votes')
+      .delete()
+      .neq('id', '00000000-0000-0000-0000-000000000000'); // Delete all
+
+    if (error) {
+      console.error('Error deleting all votes:', error);
+      return false;
+    }
+    return true;
   }
 };
 
@@ -377,14 +426,12 @@ export const votingRoundService = {
     try {
       console.log('Starting new voting round...');
       
-      // Get current round number
       const { data: currentRound } = await supabase
         .from('voting_rounds')
         .select('round_number')
         .eq('is_active', true)
         .single();
 
-      // Deactivate current round
       const { error: deactivateRoundError } = await supabase
         .from('voting_rounds')
         .update({ is_active: false })
@@ -395,7 +442,6 @@ export const votingRoundService = {
         return false;
       }
 
-      // Create new round
       const newRoundNumber = (currentRound?.round_number || 0) + 1;
       const { error: createRoundError } = await supabase
         .from('voting_rounds')
@@ -408,11 +454,10 @@ export const votingRoundService = {
 
       console.log(`Created new round ${newRoundNumber}`);
 
-      // Reset global scores and vote counts for ALL active titles and covers
+      // Reset global scores and vote counts for ALL titles and covers (not just active ones)
       const { error: resetTitlesError } = await supabase
         .from('titles')
-        .update({ global_score: 1000, vote_count: 0 })
-        .eq('is_active', true);
+        .update({ global_score: 1000, vote_count: 0 });
 
       if (resetTitlesError) {
         console.error('Error resetting titles:', resetTitlesError);
@@ -421,18 +466,65 @@ export const votingRoundService = {
 
       const { error: resetCoversError } = await supabase
         .from('covers')
-        .update({ global_score: 1000, vote_count: 0 })
-        .eq('is_active', true);
+        .update({ global_score: 1000, vote_count: 0 });
 
       if (resetCoversError) {
         console.error('Error resetting covers:', resetCoversError);
         return false;
       }
 
-      console.log('Successfully reset all scores and vote counts');
+      console.log('Successfully reset all scores and vote counts for all items');
       return true;
     } catch (error) {
       console.error('Error starting new round:', error);
+      return false;
+    }
+  },
+
+  async hardReset(): Promise<boolean> {
+    try {
+      console.log('Starting hard reset...');
+      
+      // Delete all votes
+      await voteService.deleteAllVotes();
+      
+      // Delete all survey answers
+      await surveyService.deleteAllSurveyAnswers();
+      
+      // Reset all voting rounds
+      const { error: resetRoundsError } = await supabase
+        .from('voting_rounds')
+        .delete()
+        .neq('id', '00000000-0000-0000-0000-000000000000');
+
+      if (resetRoundsError) {
+        console.error('Error resetting voting rounds:', resetRoundsError);
+        return false;
+      }
+
+      // Create initial round
+      const { error: createInitialRoundError } = await supabase
+        .from('voting_rounds')
+        .insert([{ round_number: 1, is_active: true }]);
+
+      if (createInitialRoundError) {
+        console.error('Error creating initial round:', createInitialRoundError);
+        return false;
+      }
+
+      // Reset all scores
+      await supabase
+        .from('titles')
+        .update({ global_score: 1000, vote_count: 0 });
+
+      await supabase
+        .from('covers')
+        .update({ global_score: 1000, vote_count: 0 });
+
+      console.log('Hard reset completed successfully');
+      return true;
+    } catch (error) {
+      console.error('Error during hard reset:', error);
       return false;
     }
   }
@@ -478,13 +570,6 @@ export const exportService = {
     const votes = await voteService.getAllVotes();
     const users = await userService.getAllUsers();
     
-    // Get all voting rounds for mapping
-    const { data: votingRounds } = await supabase
-      .from('voting_rounds')
-      .select('*')
-      .order('round_number');
-
-    // Get votes with round information
     const { data: votesWithRounds } = await supabase
       .from('votes')
       .select(`
