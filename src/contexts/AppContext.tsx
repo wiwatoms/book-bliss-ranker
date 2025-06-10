@@ -8,7 +8,6 @@ import {
   surveyService,
   exportService 
 } from '@/services/supabaseServices';
-import { useRealTimeUpdates } from '@/hooks/useRealTimeUpdates';
 
 interface AppContextType {
   currentUser: User | null;
@@ -341,9 +340,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       setIsLoading(false);
     }
   };
-
-  // Add real-time updates
-  useRealTimeUpdates();
 
   return (
     <AppContext.Provider value={{

@@ -9,9 +9,13 @@ import { ComparisonView } from '@/components/ComparisonView';
 import { FeedbackInput } from '@/components/FeedbackInput';
 import { RankingView } from '@/components/RankingView';
 import { AdminDashboard } from '@/components/AdminDashboard';
+import { useRealTimeUpdates } from '@/hooks/useRealTimeUpdates';
 
 function AppContent() {
   const { currentStep } = useApp();
+  
+  // Use real-time updates here, inside the AppProvider
+  useRealTimeUpdates();
 
   const renderCurrentStep = () => {
     switch (currentStep) {
