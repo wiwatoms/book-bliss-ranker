@@ -15,9 +15,12 @@ import {
   Users,
   FileText,
   Image as ImageIcon,
-  RefreshCw
+  RefreshCw,
+  RotateCcw
 } from 'lucide-react';
 import { useApp } from '@/contexts/AppContext';
+import { votingRoundService } from '@/services/supabaseServices';
+import { replaceCoversWithNewOnes } from '@/utils/coverUpload';
 
 export function AdminDashboard() {
   const { 
@@ -37,6 +40,18 @@ export function AdminDashboard() {
   const [newTitle, setNewTitle] = useState('');
   const [newCoverUrl, setNewCoverUrl] = useState('');
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [currentRound, setCurrentRound] = useState(1);
+  const [isStartingNewRound, setIsStartingNewRound] = useState(false);
+  const [isReplacingCovers, setIsReplacingCovers] = useState(false);
+
+  useEffect(() => {
+    loadCurrentRound();
+  }, []);
+
+  const loadCurrentRound = async () => {
+    const round = await votingRoundService.getCurrentRound();
+    setCurrentRound(round);
+  };
 
   const handleAddTitle = async () => {
     if (newTitle.trim()) {
@@ -55,7 +70,27 @@ export function AdminDashboard() {
   const handleRefresh = async () => {
     setIsRefreshing(true);
     await refreshRankings();
+    await loadCurrentRound();
     setIsRefreshing(false);
+  };
+
+  const handleStartNewRound = async () => {
+    setIsStartingNewRound(true);
+    const success = await votingRoundService.startNewRound();
+    if (success) {
+      await loadCurrentRound();
+      await refreshRankings();
+    }
+    setIsStartingNewRound(false);
+  };
+
+  const handleReplaceCovers = async () => {
+    setIsReplacingCovers(true);
+    const success = await replaceCoversWithNewOnes();
+    if (success) {
+      await refreshRankings();
+    }
+    setIsReplacingCovers(false);
   };
 
   const activeTitles = titles.filter(t => t.isActive);
@@ -76,7 +111,7 @@ export function AdminDashboard() {
         <div className="flex items-center justify-between mb-8">
           <div>
             <h1 className="text-3xl font-bold text-gray-900">Admin Dashboard</h1>
-            <p className="text-gray-600">Verwaltung der Inhalte und Datenanalyse</p>
+            <p className="text-gray-600">Verwaltung der Inhalte und Datenanalyse - Runde {currentRound}</p>
           </div>
           <div className="flex gap-2">
             <Button 
@@ -138,10 +173,8 @@ export function AdminDashboard() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600">Globaler Top Titel</p>
-                  <p className="text-sm font-bold text-gray-900">
-                    {activeTitles.sort((a, b) => b.globalScore - a.globalScore)[0]?.text.slice(0, 20) || 'N/A'}...
-                  </p>
+                  <p className="text-sm font-medium text-gray-600">Abstimmungsrunde</p>
+                  <p className="text-2xl font-bold text-gray-900">{currentRound}</p>
                 </div>
                 <Users className="w-8 h-8 text-orange-500" />
               </div>
@@ -221,6 +254,16 @@ export function AdminDashboard() {
                       <Plus className="w-4 h-4" />
                     </Button>
                   </div>
+
+                  <Button 
+                    onClick={handleReplaceCovers}
+                    className="w-full"
+                    variant="outline"
+                    disabled={isReplacingCovers}
+                  >
+                    <Upload className="w-4 h-4 mr-2" />
+                    {isReplacingCovers ? 'Ersetze Cover...' : 'Cover durch neue ersetzen'}
+                  </Button>
                   
                   <div className="space-y-2 max-h-60 overflow-y-auto">
                     {covers.map((cover) => (
@@ -291,7 +334,7 @@ export function AdminDashboard() {
               <CardHeader>
                 <CardTitle>Daten exportieren</CardTitle>
                 <p className="text-sm text-gray-600">
-                  Exportieren Sie verschiedene Datentypen als CSV-Dateien
+                  Exportiere verschiedene Datentypen als CSV-Dateien
                 </p>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -334,9 +377,9 @@ export function AdminDashboard() {
                 <div className="mt-6 p-4 bg-blue-50 rounded-lg">
                   <h4 className="font-medium text-blue-900 mb-2">CSV-Inhalte:</h4>
                   <ul className="text-sm text-blue-800 space-y-1">
-                    <li><strong>Globales Ranking:</strong> Titel/Cover mit globalen Scores und Abstimmungsanzahl</li>
+                    <li><strong>Globales Ranking:</strong> Titel/Cover mit globalen Scores und Abstimmungsanzahl (inkl. Runde)</li>
                     <li><strong>Lokales Ranking:</strong> Titel/Cover mit lokalen Scores der aktuellen Session</li>
-                    <li><strong>Alle Stimmen:</strong> Vollständiges Log aller Abstimmungen mit Nutzer-Info</li>
+                    <li><strong>Alle Stimmen:</strong> Vollständiges Log aller Abstimmungen mit Nutzer-Info und Runde</li>
                     <li><strong>Alle Nutzer-Daten:</strong> Nutzer-Profile, Umfrage-Antworten und Abstimmungsstatistiken</li>
                   </ul>
                 </div>
@@ -349,10 +392,41 @@ export function AdminDashboard() {
               <CardHeader>
                 <CardTitle>Einstellungen</CardTitle>
               </CardHeader>
-              <CardContent>
+              <CardContent className="space-y-4">
                 <Dialog>
                   <DialogTrigger asChild>
-                    <Button variant="destructive" className="flex items-center gap-2">
+                    <Button className="flex items-center gap-2 w-full">
+                      <RotateCcw className="w-4 h-4" />
+                      Neue Abstimmungsrunde starten
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Neue Abstimmungsrunde starten</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                      <p className="text-gray-600">
+                        Dies startet eine neue Abstimmungsrunde und setzt alle globalen Rankings zurück. 
+                        Alle bisherigen Stimmen bleiben erhalten und werden in den CSV-Exporten nach Runden getrennt.
+                      </p>
+                      <div className="flex gap-2 justify-end">
+                        <DialogTrigger asChild>
+                          <Button variant="outline">Abbrechen</Button>
+                        </DialogTrigger>
+                        <Button 
+                          onClick={handleStartNewRound}
+                          disabled={isStartingNewRound}
+                        >
+                          {isStartingNewRound ? 'Starte neue Runde...' : 'Neue Runde starten'}
+                        </Button>
+                      </div>
+                    </div>
+                  </DialogContent>
+                </Dialog>
+
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <Button variant="destructive" className="flex items-center gap-2 w-full">
                       <Trash2 className="w-4 h-4" />
                       Daten-Reset durchführen
                     </Button>

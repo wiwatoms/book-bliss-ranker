@@ -231,11 +231,47 @@ export const coverService = {
       return false;
     }
     return true;
+  },
+
+  async replaceAllCovers(newCovers: string[]): Promise<boolean> {
+    try {
+      // Deactivate all existing covers
+      await supabase
+        .from('covers')
+        .update({ is_active: false })
+        .eq('is_active', true);
+
+      // Add new covers
+      const { error } = await supabase
+        .from('covers')
+        .insert(newCovers.map(url => ({ image_url: url })));
+
+      if (error) {
+        console.error('Error replacing covers:', error);
+        return false;
+      }
+      return true;
+    } catch (error) {
+      console.error('Error in replaceAllCovers:', error);
+      return false;
+    }
   }
 };
 
 export const voteService = {
   async saveVote(vote: Omit<Vote, 'id' | 'timestamp'> & { localWinnerScore: number; localLoserScore: number }): Promise<boolean> {
+    // Get current active voting round
+    const { data: roundData, error: roundError } = await supabase
+      .from('voting_rounds')
+      .select('id')
+      .eq('is_active', true)
+      .single();
+
+    if (roundError || !roundData) {
+      console.error('Error getting current voting round:', roundError);
+      return false;
+    }
+
     const { error } = await supabase
       .from('votes')
       .insert([{
@@ -244,7 +280,8 @@ export const voteService = {
         winner_item_id: vote.winnerItemId,
         loser_item_id: vote.loserItemId,
         local_winner_score: vote.localWinnerScore,
-        local_loser_score: vote.localLoserScore
+        local_loser_score: vote.localLoserScore,
+        voting_round_id: roundData.id
       }]);
 
     if (error) {
@@ -276,6 +313,67 @@ export const voteService = {
   }
 };
 
+export const votingRoundService = {
+  async getCurrentRound(): Promise<number> {
+    const { data, error } = await supabase
+      .from('voting_rounds')
+      .select('round_number')
+      .eq('is_active', true)
+      .single();
+
+    if (error) {
+      console.error('Error getting current round:', error);
+      return 1;
+    }
+
+    return data.round_number;
+  },
+
+  async startNewRound(): Promise<boolean> {
+    try {
+      // Get current round number
+      const { data: currentRound } = await supabase
+        .from('voting_rounds')
+        .select('round_number')
+        .eq('is_active', true)
+        .single();
+
+      // Deactivate current round
+      await supabase
+        .from('voting_rounds')
+        .update({ is_active: false })
+        .eq('is_active', true);
+
+      // Create new round
+      const newRoundNumber = (currentRound?.round_number || 0) + 1;
+      const { error } = await supabase
+        .from('voting_rounds')
+        .insert([{ round_number: newRoundNumber, is_active: true }]);
+
+      if (error) {
+        console.error('Error creating new round:', error);
+        return false;
+      }
+
+      // Reset global scores for all titles and covers
+      await supabase
+        .from('titles')
+        .update({ global_score: 1000, vote_count: 0 })
+        .eq('is_active', true);
+
+      await supabase
+        .from('covers')
+        .update({ global_score: 1000, vote_count: 0 })
+        .eq('is_active', true);
+
+      return true;
+    } catch (error) {
+      console.error('Error starting new round:', error);
+      return false;
+    }
+  }
+};
+
 export const exportService = {
   async exportAllUsersCSV(): Promise<string> {
     const users = await userService.getAllUsers();
@@ -297,15 +395,16 @@ export const exportService = {
   async exportGlobalRankingsCSV(): Promise<string> {
     const titles = await titleService.getAllTitles();
     const covers = await coverService.getAllCovers();
+    const currentRound = await votingRoundService.getCurrentRound();
 
-    let csvContent = 'Type,ID,Text/URL,Global Score,Vote Count,Is Active\n';
+    let csvContent = 'Type,ID,Text/URL,Global Score,Vote Count,Is Active,Voting Round\n';
     
     titles.forEach(title => {
-      csvContent += `Title,"${title.id}","${title.text}",${title.globalScore.toFixed(2)},${title.voteCount},${title.isActive}\n`;
+      csvContent += `Title,"${title.id}","${title.text}",${title.globalScore.toFixed(2)},${title.voteCount},${title.isActive},${currentRound}\n`;
     });
     
     covers.forEach(cover => {
-      csvContent += `Cover,"${cover.id}","${cover.imageUrl}",${cover.globalScore.toFixed(2)},${cover.voteCount},${cover.isActive}\n`;
+      csvContent += `Cover,"${cover.id}","${cover.imageUrl}",${cover.globalScore.toFixed(2)},${cover.voteCount},${cover.isActive},${currentRound}\n`;
     });
     
     return csvContent;
@@ -315,11 +414,27 @@ export const exportService = {
     const votes = await voteService.getAllVotes();
     const users = await userService.getAllUsers();
     
-    let csvContent = 'Vote ID,User ID,User Name,Item Type,Winner Item ID,Loser Item ID,Timestamp\n';
+    // Get all voting rounds for mapping
+    const { data: votingRounds } = await supabase
+      .from('voting_rounds')
+      .select('*')
+      .order('round_number');
+
+    // Get votes with round information
+    const { data: votesWithRounds } = await supabase
+      .from('votes')
+      .select(`
+        *,
+        voting_rounds!inner(round_number)
+      `)
+      .order('timestamp', { ascending: false });
     
-    votes.forEach(vote => {
-      const user = users.find(u => u.id === vote.userId);
-      csvContent += `"${vote.id}","${vote.userId}","${user?.name || 'Unknown'}","${vote.itemType}","${vote.winnerItemId}","${vote.loserItemId}","${vote.timestamp.toISOString()}"\n`;
+    let csvContent = 'Vote ID,User ID,User Name,Item Type,Winner Item ID,Loser Item ID,Timestamp,Voting Round\n';
+    
+    votesWithRounds?.forEach(vote => {
+      const user = users.find(u => u.id === vote.user_id);
+      const roundNumber = vote.voting_rounds?.round_number || 1;
+      csvContent += `"${vote.id}","${vote.user_id}","${user?.name || 'Unknown'}","${vote.item_type}","${vote.winner_item_id}","${vote.loser_item_id}","${vote.timestamp}",${roundNumber}\n`;
     });
     
     return csvContent;

@@ -131,6 +131,7 @@ export type Database = {
           loser_item_id: string
           timestamp: string
           user_id: string
+          voting_round_id: string
           winner_item_id: string
         }
         Insert: {
@@ -141,6 +142,7 @@ export type Database = {
           loser_item_id: string
           timestamp?: string
           user_id: string
+          voting_round_id: string
           winner_item_id: string
         }
         Update: {
@@ -151,6 +153,7 @@ export type Database = {
           loser_item_id?: string
           timestamp?: string
           user_id?: string
+          voting_round_id?: string
           winner_item_id?: string
         }
         Relationships: [
@@ -161,7 +164,35 @@ export type Database = {
             referencedRelation: "users"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "votes_voting_round_id_fkey"
+            columns: ["voting_round_id"]
+            isOneToOne: false
+            referencedRelation: "voting_rounds"
+            referencedColumns: ["id"]
+          },
         ]
+      }
+      voting_rounds: {
+        Row: {
+          id: string
+          is_active: boolean
+          round_number: number
+          started_at: string
+        }
+        Insert: {
+          id?: string
+          is_active?: boolean
+          round_number?: number
+          started_at?: string
+        }
+        Update: {
+          id?: string
+          is_active?: boolean
+          round_number?: number
+          started_at?: string
+        }
+        Relationships: []
       }
     }
     Views: {

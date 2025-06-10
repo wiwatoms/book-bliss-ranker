@@ -54,20 +54,20 @@ export function StartScreen() {
                 <h3 className="text-xl font-semibold mb-3">Wie funktioniert es?</h3>
                 <ul className="space-y-2 text-gray-700">
                   <li className="flex items-center">
-                    <span className="w-6 h-6 bg-blue-500 text-white rounded-full flex items-center justify-center text-sm mr-3">1</span>
-                    Kurze Umfrage zu deinen Lesegewohnheiten
+                    <span className="w-8 h-8 bg-blue-500 text-white rounded-full flex items-center justify-center text-sm mr-3 flex-shrink-0">1</span>
+                    <span>Kurze Umfrage zu deinen Lesegewohnheiten</span>
                   </li>
                   <li className="flex items-center">
-                    <span className="w-6 h-6 bg-purple-500 text-white rounded-full flex items-center justify-center text-sm mr-3">2</span>
-                    12 Titel-Vergleiche bewerten
+                    <span className="w-8 h-8 bg-purple-500 text-white rounded-full flex items-center justify-center text-sm mr-3 flex-shrink-0">2</span>
+                    <span>12 Titel-Vergleiche bewerten</span>
                   </li>
                   <li className="flex items-center">
-                    <span className="w-6 h-6 bg-pink-500 text-white rounded-full flex items-center justify-center text-sm mr-3">3</span>
-                    12 Cover-Vergleiche bewerten
+                    <span className="w-8 h-8 bg-pink-500 text-white rounded-full flex items-center justify-center text-sm mr-3 flex-shrink-0">3</span>
+                    <span>12 Cover-Vergleiche bewerten</span>
                   </li>
                   <li className="flex items-center">
-                    <span className="w-6 h-6 bg-green-500 text-white rounded-full flex items-center justify-center text-sm mr-3">4</span>
-                    Deine persönlichen und globalen Rankings ansehen
+                    <span className="w-8 h-8 bg-green-500 text-white rounded-full flex items-center justify-center text-sm mr-3 flex-shrink-0">4</span>
+                    <span>Deine persönlichen und globalen Rankings ansehen</span>
                   </li>
                 </ul>
               </div>

@@ -40,9 +40,9 @@ export function Survey() {
   };
 
   const readingOptions = [
-    'Nein/kaum',
+    'Ich lese sehr wenig',
     'E-Book', 
-    'Gedruckt'
+    'Gedrucktes Buch'
   ];
 
   return (
@@ -54,13 +54,13 @@ export function Survey() {
           </div>
           <CardTitle className="text-2xl mb-2">Kurze Umfrage</CardTitle>
           <p className="text-gray-600">
-            Helfen Sie uns, Sie besser kennenzulernen. Dies dauert nur wenige Sekunden.
+            Hilf uns, dich besser kennenzulernen. Dies dauert nur wenige Sekunden.
           </p>
         </CardHeader>
         <CardContent className="space-y-8">
           <div>
             <Label className="text-base font-medium mb-4 block">
-              Wie lesen Sie normalerweise? (Mehrfachauswahl möglich)
+              Wie liest du normalerweise? (Mehrfachauswahl möglich)
             </Label>
             <div className="space-y-3">
               {readingOptions.map((option) => (
@@ -80,7 +80,7 @@ export function Survey() {
 
           <div>
             <Label className="text-base font-medium mb-4 block">
-              Wie interessiert sind Sie an Büchern? (1 = gar nicht, 10 = sehr)
+              Ganz ehrlich: Wie interessiert wärst du, ähnliche Geschichten zu lesen / zu hören? (1 = gar nicht, 10 = sehr)
             </Label>
             <div className="space-y-4">
               <input
