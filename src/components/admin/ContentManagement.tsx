@@ -17,7 +17,6 @@ interface ContentManagementProps {
   onDeactivateItem: (type: 'title' | 'cover', id: string) => Promise<void>;
   onDeleteItem: (type: 'title' | 'cover', id: string) => Promise<void>;
   onReplaceCovers: () => Promise<void>;
-  onFileUpload: (file: File) => Promise<string | null>;
   isReplacingCovers: boolean;
 }
 
@@ -29,7 +28,6 @@ export function ContentManagement({
   onDeactivateItem,
   onDeleteItem,
   onReplaceCovers,
-  onFileUpload,
   isReplacingCovers
 }: ContentManagementProps) {
   const [newTitle, setNewTitle] = useState('');
@@ -37,28 +35,48 @@ export function ContentManagement({
 
   const handleAddTitle = async () => {
     if (newTitle.trim()) {
-      await onAddTitle(newTitle.trim());
-      setNewTitle('');
-      toast.success('Titel hinzugefügt');
+      try {
+        await onAddTitle(newTitle.trim());
+        setNewTitle('');
+        toast.success('Titel hinzugefügt');
+      } catch (error) {
+        console.error('Error adding title:', error);
+        toast.error('Fehler beim Hinzufügen des Titels');
+      }
     }
   };
 
   const handleAddCover = async () => {
     if (newCoverUrl.trim()) {
-      await onAddCover(newCoverUrl.trim());
-      setNewCoverUrl('');
-      toast.success('Cover hinzugefügt');
+      try {
+        await onAddCover(newCoverUrl.trim());
+        setNewCoverUrl('');
+        toast.success('Cover hinzugefügt');
+      } catch (error) {
+        console.error('Error adding cover:', error);
+        toast.error('Fehler beim Hinzufügen des Covers');
+      }
     }
   };
 
   const handleDeleteTitle = async (id: string) => {
-    await onDeleteItem('title', id);
-    toast.success('Titel gelöscht');
+    try {
+      await onDeleteItem('title', id);
+      toast.success('Titel gelöscht');
+    } catch (error) {
+      console.error('Error deleting title:', error);
+      toast.error('Fehler beim Löschen des Titels');
+    }
   };
 
   const handleDeleteCover = async (id: string) => {
-    await onDeleteItem('cover', id);
-    toast.success('Cover gelöscht');
+    try {
+      await onDeleteItem('cover', id);
+      toast.success('Cover gelöscht');
+    } catch (error) {
+      console.error('Error deleting cover:', error);
+      toast.error('Fehler beim Löschen des Covers');
+    }
   };
 
   return (
@@ -158,7 +176,6 @@ export function ContentManagement({
           <div className="p-3 bg-blue-50 rounded-lg">
             <h4 className="font-medium text-blue-900 mb-2">Datei hochladen</h4>
             <FileUpload 
-              onFileUpload={onFileUpload}
               onAddCover={onAddCover}
               disabled={isReplacingCovers}
             />
@@ -200,6 +217,10 @@ export function ContentManagement({
                     src={cover.imageUrl} 
                     alt="Cover"
                     className="w-12 h-16 object-cover rounded"
+                    onError={(e) => {
+                      console.log('Image load error for:', cover.imageUrl);
+                      e.currentTarget.src = '/placeholder.svg';
+                    }}
                   />
                   <div>
                     <p className="text-sm text-gray-600">

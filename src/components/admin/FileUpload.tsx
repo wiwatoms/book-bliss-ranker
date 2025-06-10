@@ -4,14 +4,14 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Upload, X } from 'lucide-react';
 import { toast } from 'sonner';
+import { storageService } from '@/services/storageService';
 
 interface FileUploadProps {
-  onFileUpload: (file: File) => Promise<string | null>;
   onAddCover: (url: string) => Promise<void>;
   disabled?: boolean;
 }
 
-export function FileUpload({ onFileUpload, onAddCover, disabled }: FileUploadProps) {
+export function FileUpload({ onAddCover, disabled }: FileUploadProps) {
   const [isUploading, setIsUploading] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
@@ -42,16 +42,22 @@ export function FileUpload({ onFileUpload, onAddCover, disabled }: FileUploadPro
 
     setIsUploading(true);
     try {
-      const url = await onFileUpload(selectedFile);
-      if (url) {
-        await onAddCover(url);
+      console.log('Starting file upload process...');
+      
+      // Upload to Supabase Storage
+      const uploadResult = await storageService.uploadFile(selectedFile, 'covers');
+      
+      if (uploadResult.success && uploadResult.url) {
+        console.log('File uploaded successfully, adding to database...');
+        await onAddCover(uploadResult.url);
         toast.success('Cover erfolgreich hochgeladen');
         setSelectedFile(null);
         // Reset file input
         const fileInput = document.getElementById('cover-upload') as HTMLInputElement;
         if (fileInput) fileInput.value = '';
       } else {
-        toast.error('Fehler beim Hochladen der Datei');
+        console.error('Upload failed:', uploadResult.error);
+        toast.error(uploadResult.error || 'Fehler beim Hochladen der Datei');
       }
     } catch (error) {
       console.error('Upload error:', error);

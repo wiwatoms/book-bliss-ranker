@@ -39,8 +39,12 @@ export function AdminDashboard() {
   }, []);
 
   const loadCurrentRound = async () => {
-    const round = await votingRoundService.getCurrentRound();
-    setCurrentRound(round);
+    try {
+      const round = await votingRoundService.getCurrentRound();
+      setCurrentRound(round);
+    } catch (error) {
+      console.error('Error loading current round:', error);
+    }
   };
 
   const handleRefresh = async () => {
@@ -58,6 +62,7 @@ export function AdminDashboard() {
       await loadCurrentRound();
       
       console.log('Comprehensive refresh completed successfully');
+      toast.success('Daten erfolgreich aktualisiert');
     } catch (error) {
       console.error('Error during refresh:', error);
       toast.error('Fehler beim Aktualisieren der Daten');
@@ -69,63 +74,65 @@ export function AdminDashboard() {
   const handleStartNewRound = async () => {
     setIsStartingNewRound(true);
     console.log('Attempting to start new round...');
-    const success = await votingRoundService.startNewRound();
-    if (success) {
-      console.log('New round started successfully');
-      await loadCurrentRound();
-      await handleRefresh();
-      toast.success(`Neue Runde ${currentRound + 1} gestartet`);
-    } else {
-      console.error('Failed to start new round');
+    try {
+      const success = await votingRoundService.startNewRound();
+      if (success) {
+        console.log('New round started successfully');
+        await loadCurrentRound();
+        await handleRefresh();
+        toast.success(`Neue Runde ${currentRound + 1} gestartet`);
+      } else {
+        console.error('Failed to start new round');
+        toast.error('Fehler beim Starten der neuen Runde');
+      }
+    } catch (error) {
+      console.error('Error starting new round:', error);
       toast.error('Fehler beim Starten der neuen Runde');
+    } finally {
+      setIsStartingNewRound(false);
     }
-    setIsStartingNewRound(false);
   };
 
   const handleReplaceCovers = async () => {
     setIsReplacingCovers(true);
     console.log('Starting cover replacement...');
-    const success = await replaceCoversWithNewOnes();
-    if (success) {
-      console.log('Covers replaced successfully, forcing refresh...');
-      await handleRefresh();
-      toast.success('Cover erfolgreich ersetzt');
-    } else {
-      console.error('Failed to replace covers');
-      toast.error('Fehler beim Ersetzen der Cover');
-    }
-    setIsReplacingCovers(false);
-  };
-
-  const handleFileUpload = async (file: File): Promise<string | null> => {
     try {
-      // Create a simple URL for uploaded files
-      // In a real app, you'd upload to Supabase Storage
-      const formData = new FormData();
-      formData.append('file', file);
-      
-      // For now, we'll simulate an upload by creating a data URL
-      return new Promise((resolve) => {
-        const reader = new FileReader();
-        reader.onload = (e) => {
-          resolve(e.target?.result as string);
-        };
-        reader.readAsDataURL(file);
-      });
+      const success = await replaceCoversWithNewOnes();
+      if (success) {
+        console.log('Covers replaced successfully, forcing refresh...');
+        await handleRefresh();
+        toast.success('Cover erfolgreich ersetzt');
+      } else {
+        console.error('Failed to replace covers');
+        toast.error('Fehler beim Ersetzen der Cover');
+      }
     } catch (error) {
-      console.error('Error uploading file:', error);
-      return null;
+      console.error('Error replacing covers:', error);
+      toast.error('Fehler beim Ersetzen der Cover');
+    } finally {
+      setIsReplacingCovers(false);
     }
   };
 
   const handleDeleteItem = async (type: 'title' | 'cover', id: string) => {
     try {
+      console.log(`Attempting to delete ${type} with id: ${id}`);
+      
       if (type === 'title') {
-        await titleService.deleteTitle(id);
+        const success = await titleService.deleteTitle(id);
+        if (!success) {
+          throw new Error('Failed to delete title');
+        }
       } else {
-        await coverService.deleteCover(id);
+        const success = await coverService.deleteCover(id);
+        if (!success) {
+          throw new Error('Failed to delete cover');
+        }
       }
+      
+      console.log(`Successfully deleted ${type}: ${id}`);
       await handleRefresh();
+      toast.success(`${type === 'title' ? 'Titel' : 'Cover'} erfolgreich gelöscht`);
     } catch (error) {
       console.error(`Error deleting ${type}:`, error);
       toast.error(`Fehler beim Löschen des ${type === 'title' ? 'Titels' : 'Covers'}`);
@@ -134,6 +141,7 @@ export function AdminDashboard() {
 
   const handleHardReset = async () => {
     try {
+      console.log('Starting hard reset...');
       const success = await votingRoundService.hardReset();
       if (success) {
         await handleRefresh();
@@ -150,6 +158,7 @@ export function AdminDashboard() {
   // Wrapper functions to convert Promise<boolean> to Promise<void>
   const handleDeleteAllVotes = async (): Promise<void> => {
     try {
+      console.log('Deleting all votes...');
       const success = await voteService.deleteAllVotes();
       if (success) {
         await handleRefresh();
@@ -165,6 +174,7 @@ export function AdminDashboard() {
 
   const handleDeleteAllSurveyAnswers = async (): Promise<void> => {
     try {
+      console.log('Deleting all survey answers...');
       const success = await surveyService.deleteAllSurveyAnswers();
       if (success) {
         await handleRefresh();
@@ -180,6 +190,7 @@ export function AdminDashboard() {
 
   const handleDeleteAllUsers = async (): Promise<void> => {
     try {
+      console.log('Deleting all users...');
       const success = await userService.deleteAllUsers();
       if (success) {
         await handleRefresh();
@@ -195,6 +206,7 @@ export function AdminDashboard() {
 
   const handleDeleteAllTitles = async (): Promise<void> => {
     try {
+      console.log('Deleting all titles...');
       const success = await titleService.deleteAllTitles();
       if (success) {
         await handleRefresh();
@@ -210,6 +222,7 @@ export function AdminDashboard() {
 
   const handleDeleteAllCovers = async (): Promise<void> => {
     try {
+      console.log('Deleting all covers...');
       const success = await coverService.deleteAllCovers();
       if (success) {
         await handleRefresh();
@@ -261,7 +274,7 @@ export function AdminDashboard() {
         />
 
         <Tabs defaultValue="content" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-5">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="content">Inhalte verwalten</TabsTrigger>
             <TabsTrigger value="data">Daten verwalten</TabsTrigger>
             <TabsTrigger value="votes">Stimmen</TabsTrigger>
@@ -277,7 +290,6 @@ export function AdminDashboard() {
               onDeactivateItem={deactivateItem}
               onDeleteItem={handleDeleteItem}
               onReplaceCovers={handleReplaceCovers}
-              onFileUpload={handleFileUpload}
               isReplacingCovers={isReplacingCovers}
             />
           </TabsContent>
