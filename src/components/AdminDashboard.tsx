@@ -147,6 +147,82 @@ export function AdminDashboard() {
     }
   };
 
+  // Wrapper functions to convert Promise<boolean> to Promise<void>
+  const handleDeleteAllVotes = async (): Promise<void> => {
+    try {
+      const success = await voteService.deleteAllVotes();
+      if (success) {
+        await handleRefresh();
+        toast.success('Alle Stimmen gelöscht');
+      } else {
+        toast.error('Fehler beim Löschen der Stimmen');
+      }
+    } catch (error) {
+      console.error('Error deleting votes:', error);
+      toast.error('Fehler beim Löschen der Stimmen');
+    }
+  };
+
+  const handleDeleteAllSurveyAnswers = async (): Promise<void> => {
+    try {
+      const success = await surveyService.deleteAllSurveyAnswers();
+      if (success) {
+        await handleRefresh();
+        toast.success('Alle Umfrageantworten gelöscht');
+      } else {
+        toast.error('Fehler beim Löschen der Umfrageantworten');
+      }
+    } catch (error) {
+      console.error('Error deleting survey answers:', error);
+      toast.error('Fehler beim Löschen der Umfrageantworten');
+    }
+  };
+
+  const handleDeleteAllUsers = async (): Promise<void> => {
+    try {
+      const success = await userService.deleteAllUsers();
+      if (success) {
+        await handleRefresh();
+        toast.success('Alle Nutzer gelöscht');
+      } else {
+        toast.error('Fehler beim Löschen der Nutzer');
+      }
+    } catch (error) {
+      console.error('Error deleting users:', error);
+      toast.error('Fehler beim Löschen der Nutzer');
+    }
+  };
+
+  const handleDeleteAllTitles = async (): Promise<void> => {
+    try {
+      const success = await titleService.deleteAllTitles();
+      if (success) {
+        await handleRefresh();
+        toast.success('Alle Titel gelöscht');
+      } else {
+        toast.error('Fehler beim Löschen der Titel');
+      }
+    } catch (error) {
+      console.error('Error deleting titles:', error);
+      toast.error('Fehler beim Löschen der Titel');
+    }
+  };
+
+  const handleDeleteAllCovers = async (): Promise<void> => {
+    try {
+      const success = await coverService.deleteAllCovers();
+      if (success) {
+        await handleRefresh();
+        toast.success('Alle Cover gelöscht');
+      } else {
+        toast.error('Fehler beim Löschen der Cover');
+      }
+    } catch (error) {
+      console.error('Error deleting covers:', error);
+      toast.error('Fehler beim Löschen der Cover');
+    }
+  };
+
   const activeTitles = titles.filter(t => t.isActive);
   const activeCovers = covers.filter(c => c.isActive);
   const totalVotes = votes.length;
@@ -210,11 +286,11 @@ export function AdminDashboard() {
             <DataManagement
               onStartNewRound={handleStartNewRound}
               onHardReset={handleHardReset}
-              onDeleteAllVotes={() => voteService.deleteAllVotes()}
-              onDeleteAllSurveyAnswers={() => surveyService.deleteAllSurveyAnswers()}
-              onDeleteAllUsers={() => userService.deleteAllUsers()}
-              onDeleteAllTitles={() => titleService.deleteAllTitles()}
-              onDeleteAllCovers={() => coverService.deleteAllCovers()}
+              onDeleteAllVotes={handleDeleteAllVotes}
+              onDeleteAllSurveyAnswers={handleDeleteAllSurveyAnswers}
+              onDeleteAllUsers={handleDeleteAllUsers}
+              onDeleteAllTitles={handleDeleteAllTitles}
+              onDeleteAllCovers={handleDeleteAllCovers}
               isStartingNewRound={isStartingNewRound}
               currentRound={currentRound}
             />
