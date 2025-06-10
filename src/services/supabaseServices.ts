@@ -182,6 +182,34 @@ export const coverService = {
     }));
   },
 
+  async forceRefreshCovers(): Promise<CoverImage[]> {
+    console.log('Force refreshing covers from database...');
+    
+    // Add timestamp to force cache bypass
+    const timestamp = Date.now();
+    const { data, error } = await supabase
+      .from('covers')
+      .select('*')
+      .eq('is_active', true)
+      .order('global_score', { ascending: false });
+
+    if (error) {
+      console.error('Error force refreshing covers:', error);
+      return [];
+    }
+
+    console.log(`Force refresh found ${data.length} active covers`);
+    
+    return data.map(cover => ({
+      id: cover.id,
+      imageUrl: `${cover.image_url}?v=${timestamp}`, // Add cache busting
+      globalScore: Number(cover.global_score),
+      localScore: 1000,
+      isActive: cover.is_active,
+      voteCount: cover.vote_count
+    }));
+  },
+
   async updateCoverScore(coverId: string, newScore: number, voteCount: number): Promise<boolean> {
     const { error } = await supabase
       .from('covers')
@@ -235,7 +263,7 @@ export const coverService = {
 
   async replaceAllCovers(newCovers: string[]): Promise<boolean> {
     try {
-      console.log('Starting cover replacement process...');
+      console.log('Starting database cover replacement process...');
       
       // First, deactivate ALL existing covers
       const { error: deactivateError } = await supabase
@@ -265,7 +293,7 @@ export const coverService = {
         return false;
       }
 
-      console.log('Successfully added new covers');
+      console.log('Successfully added new covers to database');
       return true;
     } catch (error) {
       console.error('Error in replaceAllCovers:', error);

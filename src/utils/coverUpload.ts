@@ -16,9 +16,27 @@ export const newCoverUrls = [
 
 export const replaceCoversWithNewOnes = async (): Promise<boolean> => {
   try {
-    return await coverService.replaceAllCovers(newCoverUrls);
+    console.log('Starting comprehensive cover replacement...');
+    
+    // Force refresh of cover data first
+    console.log('Step 1: Force refreshing cover data...');
+    await coverService.forceRefreshCovers();
+    
+    // Replace covers in database
+    console.log('Step 2: Replacing covers in database...');
+    const success = await coverService.replaceAllCovers(newCoverUrls);
+    
+    if (success) {
+      console.log('Step 3: Cover replacement successful, forcing data reload...');
+      // Force another refresh to get the new data
+      await coverService.forceRefreshCovers();
+      return true;
+    } else {
+      console.error('Cover replacement failed');
+      return false;
+    }
   } catch (error) {
-    console.error('Error replacing covers:', error);
+    console.error('Error in comprehensive cover replacement:', error);
     return false;
   }
 };

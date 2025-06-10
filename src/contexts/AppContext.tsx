@@ -31,6 +31,7 @@ interface AppContextType {
   exportCSV: (type: 'global' | 'local' | 'votes' | 'users') => Promise<void>;
   startNewSession: () => void;
   refreshRankings: () => Promise<void>;
+  forceRefreshCovers: () => Promise<void>;
   saveSurveyAnswers: (answers: SurveyAnswers) => Promise<void>;
 }
 
@@ -77,6 +78,17 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const refreshRankings = async () => {
     console.log('Refreshing rankings from database...');
     await loadInitialData();
+  };
+
+  const forceRefreshCovers = async () => {
+    console.log('Force refreshing covers specifically...');
+    try {
+      const freshCovers = await coverService.forceRefreshCovers();
+      setCovers(freshCovers);
+      console.log(`Force refreshed ${freshCovers.length} covers`);
+    } catch (error) {
+      console.error('Error force refreshing covers:', error);
+    }
   };
 
   const setCurrentUser = async (user: User) => {
@@ -350,6 +362,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       exportCSV,
       startNewSession,
       refreshRankings,
+      forceRefreshCovers,
       saveSurveyAnswers
     }}>
       {children}

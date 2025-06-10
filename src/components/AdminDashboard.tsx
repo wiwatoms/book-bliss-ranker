@@ -24,7 +24,8 @@ export function AdminDashboard() {
     exportCSV,
     setCurrentStep,
     currentUser,
-    refreshRankings
+    refreshRankings,
+    forceRefreshCovers
   } = useApp();
 
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -43,8 +44,16 @@ export function AdminDashboard() {
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
+    console.log('Starting comprehensive refresh...');
+    
+    // Force refresh covers specifically
+    await forceRefreshCovers();
+    
+    // Then refresh rankings
     await refreshRankings();
     await loadCurrentRound();
+    
+    console.log('Comprehensive refresh completed');
     setIsRefreshing(false);
   };
 
@@ -55,7 +64,7 @@ export function AdminDashboard() {
     if (success) {
       console.log('New round started successfully');
       await loadCurrentRound();
-      await refreshRankings();
+      await handleRefresh(); // Use the improved refresh
     } else {
       console.error('Failed to start new round');
     }
@@ -64,11 +73,11 @@ export function AdminDashboard() {
 
   const handleReplaceCovers = async () => {
     setIsReplacingCovers(true);
-    console.log('Starting cover replacement...');
+    console.log('Starting comprehensive cover replacement...');
     const success = await replaceCoversWithNewOnes();
     if (success) {
-      console.log('Covers replaced successfully');
-      await refreshRankings();
+      console.log('Covers replaced successfully, forcing refresh...');
+      await handleRefresh(); // Use the improved refresh
     } else {
       console.error('Failed to replace covers');
     }
