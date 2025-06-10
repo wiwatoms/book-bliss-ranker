@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { User, Title, CoverImage, Vote, SurveyAnswers } from '@/types';
 import { storageService } from './storageService';
@@ -543,22 +542,48 @@ export const coverService = {
 };
 
 export const voteService = {
-  async saveVote(vote: Omit<Vote, 'id' | 'timestamp'> & { localWinnerScore: number; localLoserScore: number }): Promise<boolean> {
+  async getAllVotes(): Promise<Vote[]> {
+    const { data, error } = await supabase
+      .from('votes')
+      .select(`
+        *,
+        voting_round_id
+      `)
+      .order('timestamp', { ascending: false });
+
+    if (error) {
+      console.error('Error fetching votes:', error);
+      throw error;
+    }
+
+    return data || [];
+  },
+
+  async saveVote(vote: {
+    userId: string;
+    itemType: 'title' | 'cover';
+    winnerItemId: string;
+    loserItemId: string;
+    localWinnerScore: number;
+    localLoserScore: number;
+  }): Promise<boolean> {
     try {
-      const { data: roundData, error: roundError } = await supabase
+      // Get current round
+      const currentRound = await votingRoundService.getCurrentRound();
+      const { data: roundData } = await supabase
         .from('voting_rounds')
         .select('id')
+        .eq('round_number', currentRound)
         .eq('is_active', true)
         .single();
 
-      if (roundError || !roundData) {
-        console.error('Error getting current voting round:', roundError);
-        return false;
+      if (!roundData) {
+        throw new Error('No active voting round found');
       }
 
       const { error } = await supabase
         .from('votes')
-        .insert([{
+        .insert({
           user_id: vote.userId,
           item_type: vote.itemType,
           winner_item_id: vote.winnerItemId,
@@ -566,12 +591,13 @@ export const voteService = {
           local_winner_score: vote.localWinnerScore,
           local_loser_score: vote.localLoserScore,
           voting_round_id: roundData.id
-        }]);
+        });
 
       if (error) {
         console.error('Error saving vote:', error);
         return false;
       }
+
       return true;
     } catch (error) {
       console.error('Error in saveVote:', error);
@@ -579,43 +605,44 @@ export const voteService = {
     }
   },
 
-  async getAllVotes(): Promise<Vote[]> {
-    try {
-      const { data, error } = await supabase
-        .from('votes')
-        .select('*')
-        .order('timestamp', { ascending: false });
-
-      if (error) {
-        console.error('Error fetching votes:', error);
-        return [];
-      }
-
-      return data.map(vote => ({
-        id: vote.id,
-        userId: vote.user_id,
-        itemType: vote.item_type as 'title' | 'cover',
-        winnerItemId: vote.winner_item_id,
-        loserItemId: vote.loser_item_id,
-        timestamp: new Date(vote.timestamp)
-      }));
-    } catch (error) {
-      console.error('Error in getAllVotes:', error);
-      return [];
-    }
-  },
-
   async deleteAllVotes(): Promise<boolean> {
     try {
-      const { error } = await supabase
+      console.log('Deleting all votes and resetting vote counts...');
+      
+      // First, reset all title vote counts to 0
+      const { error: titleError } = await supabase
+        .from('titles')
+        .update({ vote_count: 0 })
+        .neq('id', '00000000-0000-0000-0000-000000000000'); // Update all records
+
+      if (titleError) {
+        console.error('Error resetting title vote counts:', titleError);
+        throw titleError;
+      }
+
+      // Reset all cover vote counts to 0
+      const { error: coverError } = await supabase
+        .from('covers')
+        .update({ vote_count: 0 })
+        .neq('id', '00000000-0000-0000-0000-000000000000'); // Update all records
+
+      if (coverError) {
+        console.error('Error resetting cover vote counts:', coverError);
+        throw coverError;
+      }
+
+      // Finally, delete all votes
+      const { error: votesError } = await supabase
         .from('votes')
         .delete()
-        .neq('id', '00000000-0000-0000-0000-000000000000'); // Delete all
+        .neq('id', '00000000-0000-0000-0000-000000000000'); // Delete all records
 
-      if (error) {
-        console.error('Error deleting all votes:', error);
-        return false;
+      if (votesError) {
+        console.error('Error deleting votes:', votesError);
+        throw votesError;
       }
+
+      console.log('Successfully deleted all votes and reset vote counts');
       return true;
     } catch (error) {
       console.error('Error in deleteAllVotes:', error);
@@ -626,80 +653,93 @@ export const voteService = {
 
 export const votingRoundService = {
   async getCurrentRound(): Promise<number> {
-    try {
-      const { data, error } = await supabase
-        .from('voting_rounds')
-        .select('round_number')
-        .eq('is_active', true)
-        .single();
+    const { data, error } = await supabase
+      .from('voting_rounds')
+      .select('round_number')
+      .eq('is_active', true)
+      .order('round_number', { ascending: false })
+      .limit(1)
+      .maybeSingle();
 
-      if (error) {
-        console.error('Error getting current round:', error);
-        return 1;
-      }
-
-      return data.round_number;
-    } catch (error) {
-      console.error('Error in getCurrentRound:', error);
+    if (error) {
+      console.error('Error fetching current round:', error);
       return 1;
     }
+
+    return data?.round_number || 1;
   },
 
   async startNewRound(): Promise<boolean> {
     try {
       console.log('Starting new voting round...');
       
-      const { data: currentRound } = await supabase
-        .from('voting_rounds')
-        .select('round_number')
-        .eq('is_active', true)
-        .single();
-
-      const { error: deactivateRoundError } = await supabase
+      // Deactivate current round
+      const { error: deactivateError } = await supabase
         .from('voting_rounds')
         .update({ is_active: false })
         .eq('is_active', true);
 
-      if (deactivateRoundError) {
-        console.error('Error deactivating current round:', deactivateRoundError);
-        return false;
+      if (deactivateError) {
+        console.error('Error deactivating current round:', deactivateError);
+        throw deactivateError;
       }
 
-      const newRoundNumber = (currentRound?.round_number || 0) + 1;
-      const { error: createRoundError } = await supabase
+      // Get the next round number
+      const { data: maxRoundData, error: maxRoundError } = await supabase
         .from('voting_rounds')
-        .insert([{ round_number: newRoundNumber, is_active: true }]);
+        .select('round_number')
+        .order('round_number', { ascending: false })
+        .limit(1)
+        .maybeSingle();
 
-      if (createRoundError) {
-        console.error('Error creating new round:', createRoundError);
-        return false;
+      if (maxRoundError) {
+        console.error('Error getting max round number:', maxRoundError);
+        throw maxRoundError;
       }
 
-      console.log(`Created new round ${newRoundNumber}`);
+      const nextRoundNumber = (maxRoundData?.round_number || 0) + 1;
 
-      // Reset global scores and vote counts for ALL titles with proper WHERE clause
-      const { error: resetTitlesError } = await supabase
+      // Create new round
+      const { error: createError } = await supabase
+        .from('voting_rounds')
+        .insert({
+          round_number: nextRoundNumber,
+          is_active: true
+        });
+
+      if (createError) {
+        console.error('Error creating new round:', createError);
+        throw createError;
+      }
+
+      // Reset all global scores to 1000 and vote counts to 0
+      const { error: titleResetError } = await supabase
         .from('titles')
-        .update({ global_score: 1000, vote_count: 0 })
-        .neq('id', '00000000-0000-0000-0000-000000000000'); // This ensures we have a WHERE clause
+        .update({ 
+          global_score: 1000,
+          vote_count: 0
+        })
+        .neq('id', '00000000-0000-0000-0000-000000000000');
 
-      if (resetTitlesError) {
-        console.error('Error resetting titles:', resetTitlesError);
-        return false;
+      if (titleResetError) {
+        console.error('Error resetting title scores:', titleResetError);
+        throw titleResetError;
       }
 
-      // Reset global scores and vote counts for ALL covers with proper WHERE clause
-      const { error: resetCoversError } = await supabase
+      const { error: coverResetError } = await supabase
         .from('covers')
-        .update({ global_score: 1000, vote_count: 0 })
-        .neq('id', '00000000-0000-0000-0000-000000000000'); // This ensures we have a WHERE clause
+        .update({ 
+          global_score: 1000,
+          vote_count: 0
+        })
+        .neq('id', '00000000-0000-0000-0000-000000000000');
 
-      if (resetCoversError) {
-        console.error('Error resetting covers:', resetCoversError);
-        return false;
+      if (coverResetError) {
+        console.error('Error resetting cover scores:', coverResetError);
+        throw coverResetError;
       }
 
-      console.log('Successfully reset all scores and vote counts for all items');
+      console.log(`Successfully started round ${nextRoundNumber}`);
       return true;
     } catch (error) {
       console.error('Error starting new round:', error);
@@ -709,45 +749,80 @@ export const votingRoundService = {
 
   async hardReset(): Promise<boolean> {
     try {
-      console.log('Starting hard reset...');
+      console.log('Performing hard reset...');
       
       // Delete all votes
-      await voteService.deleteAllVotes();
-      
+      const { error: votesError } = await supabase
+        .from('votes')
+        .delete()
+        .neq('id', '00000000-0000-0000-0000-000000000000');
+
+      if (votesError) {
+        console.error('Error deleting votes:', votesError);
+        throw votesError;
+      }
+
       // Delete all survey answers
-      await surveyService.deleteAllSurveyAnswers();
-      
-      // Reset all voting rounds
-      const { error: resetRoundsError } = await supabase
+      const { error: surveyError } = await supabase
+        .from('survey_answers')
+        .delete()
+        .neq('id', '00000000-0000-0000-0000-000000000000');
+
+      if (surveyError) {
+        console.error('Error deleting survey answers:', surveyError);
+        throw surveyError;
+      }
+
+      // Delete all voting rounds
+      const { error: roundsError } = await supabase
         .from('voting_rounds')
         .delete()
         .neq('id', '00000000-0000-0000-0000-000000000000');
 
-      if (resetRoundsError) {
-        console.error('Error resetting voting rounds:', resetRoundsError);
-        return false;
+      if (roundsError) {
+        console.error('Error deleting voting rounds:', roundsError);
+        throw roundsError;
       }
 
-      // Create initial round
-      const { error: createInitialRoundError } = await supabase
-        .from('voting_rounds')
-        .insert([{ round_number: 1, is_active: true }]);
-
-      if (createInitialRoundError) {
-        console.error('Error creating initial round:', createInitialRoundError);
-        return false;
-      }
-
-      // Reset all scores with proper WHERE clauses
-      await supabase
+      // Reset all scores and vote counts
+      const { error: titleResetError } = await supabase
         .from('titles')
-        .update({ global_score: 1000, vote_count: 0 })
+        .update({ 
+          global_score: 1000,
+          vote_count: 0
+        })
         .neq('id', '00000000-0000-0000-0000-000000000000');
 
-      await supabase
+      if (titleResetError) {
+        console.error('Error resetting title scores:', titleResetError);
+        throw titleResetError;
+      }
+
+      const { error: coverResetError } = await supabase
         .from('covers')
-        .update({ global_score: 1000, vote_count: 0 })
+        .update({ 
+          global_score: 1000,
+          vote_count: 0
+        })
         .neq('id', '00000000-0000-0000-0000-000000000000');
+
+      if (coverResetError) {
+        console.error('Error resetting cover scores:', coverResetError);
+        throw coverResetError;
+      }
+
+      // Create new round 1
+      const { error: createRoundError } = await supabase
+        .from('voting_rounds')
+        .insert({
+          round_number: 1,
+          is_active: true
+        });
+
+      if (createRoundError) {
+        console.error('Error creating new round 1:', createRoundError);
+        throw createRoundError;
+      }
 
       console.log('Hard reset completed successfully');
       return true;
