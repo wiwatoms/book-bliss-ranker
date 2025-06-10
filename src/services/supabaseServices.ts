@@ -614,27 +614,33 @@ export const voteService = {
 
   async deleteAllVotes(): Promise<boolean> {
     try {
-      console.log('Deleting all votes and resetting vote counts...');
+      console.log('Deleting all votes and resetting scores and vote counts...');
       
-      // First, reset all title vote counts to 0
+      // First, reset all title scores to 1000 AND vote counts to 0
       const { error: titleError } = await supabase
         .from('titles')
-        .update({ vote_count: 0 })
+        .update({ 
+          vote_count: 0,
+          global_score: 1000
+        })
         .neq('id', '00000000-0000-0000-0000-000000000000'); // Update all records
 
       if (titleError) {
-        console.error('Error resetting title vote counts:', titleError);
+        console.error('Error resetting title scores and vote counts:', titleError);
         throw titleError;
       }
 
-      // Reset all cover vote counts to 0
+      // Reset all cover scores to 1000 AND vote counts to 0
       const { error: coverError } = await supabase
         .from('covers')
-        .update({ vote_count: 0 })
+        .update({ 
+          vote_count: 0,
+          global_score: 1000
+        })
         .neq('id', '00000000-0000-0000-0000-000000000000'); // Update all records
 
       if (coverError) {
-        console.error('Error resetting cover vote counts:', coverError);
+        console.error('Error resetting cover scores and vote counts:', coverError);
         throw coverError;
       }
 
@@ -649,7 +655,7 @@ export const voteService = {
         throw votesError;
       }
 
-      console.log('Successfully deleted all votes and reset vote counts');
+      console.log('Successfully deleted all votes and reset scores and vote counts');
       return true;
     } catch (error) {
       console.error('Error in deleteAllVotes:', error);
@@ -791,7 +797,7 @@ export const votingRoundService = {
         throw roundsError;
       }
 
-      // Reset all scores and vote counts
+      // Reset all scores to 1000 and vote counts to 0
       const { error: titleResetError } = await supabase
         .from('titles')
         .update({ 
