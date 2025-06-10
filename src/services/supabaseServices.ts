@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { User, Title, CoverImage, Vote, SurveyAnswers } from '@/types';
 import { storageService } from './storageService';
@@ -676,19 +677,22 @@ export const votingRoundService = {
 
       console.log(`Created new round ${newRoundNumber}`);
 
-      // Reset global scores and vote counts for ALL titles and covers (not just active ones)
+      // Reset global scores and vote counts for ALL titles with proper WHERE clause
       const { error: resetTitlesError } = await supabase
         .from('titles')
-        .update({ global_score: 1000, vote_count: 0 });
+        .update({ global_score: 1000, vote_count: 0 })
+        .neq('id', '00000000-0000-0000-0000-000000000000'); // This ensures we have a WHERE clause
 
       if (resetTitlesError) {
         console.error('Error resetting titles:', resetTitlesError);
         return false;
       }
 
+      // Reset global scores and vote counts for ALL covers with proper WHERE clause
       const { error: resetCoversError } = await supabase
         .from('covers')
-        .update({ global_score: 1000, vote_count: 0 });
+        .update({ global_score: 1000, vote_count: 0 })
+        .neq('id', '00000000-0000-0000-0000-000000000000'); // This ensures we have a WHERE clause
 
       if (resetCoversError) {
         console.error('Error resetting covers:', resetCoversError);
@@ -734,14 +738,16 @@ export const votingRoundService = {
         return false;
       }
 
-      // Reset all scores
+      // Reset all scores with proper WHERE clauses
       await supabase
         .from('titles')
-        .update({ global_score: 1000, vote_count: 0 });
+        .update({ global_score: 1000, vote_count: 0 })
+        .neq('id', '00000000-0000-0000-0000-000000000000');
 
       await supabase
         .from('covers')
-        .update({ global_score: 1000, vote_count: 0 });
+        .update({ global_score: 1000, vote_count: 0 })
+        .neq('id', '00000000-0000-0000-0000-000000000000');
 
       console.log('Hard reset completed successfully');
       return true;
