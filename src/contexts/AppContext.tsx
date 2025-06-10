@@ -32,6 +32,7 @@ interface AppContextType {
   startNewSession: () => void;
   refreshRankings: () => Promise<void>;
   forceRefreshCovers: () => Promise<void>;
+  refreshVotes: () => Promise<void>;
   saveSurveyAnswers: (answers: SurveyAnswers) => Promise<void>;
 }
 
@@ -78,6 +79,17 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const refreshRankings = async () => {
     console.log('Refreshing rankings from database...');
     await loadInitialData();
+  };
+
+  const refreshVotes = async () => {
+    console.log('Refreshing votes from database...');
+    try {
+      const votesData = await voteService.getAllVotes();
+      setVotes(votesData);
+      console.log('Refreshed votes:', votesData.length);
+    } catch (error) {
+      console.error('Error refreshing votes:', error);
+    }
   };
 
   const forceRefreshCovers = async () => {
@@ -363,6 +375,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       startNewSession,
       refreshRankings,
       forceRefreshCovers,
+      refreshVotes,
       saveSurveyAnswers
     }}>
       {children}

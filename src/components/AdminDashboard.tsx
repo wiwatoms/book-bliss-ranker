@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -25,7 +24,8 @@ export function AdminDashboard() {
     setCurrentStep,
     currentUser,
     refreshRankings,
-    forceRefreshCovers
+    forceRefreshCovers,
+    refreshVotes
   } = useApp();
 
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -58,7 +58,10 @@ export function AdminDashboard() {
       console.log('Step 2: Refreshing rankings...');
       await refreshRankings();
       
-      console.log('Step 3: Reloading round info...');
+      console.log('Step 3: Refreshing votes...');
+      await refreshVotes();
+      
+      console.log('Step 4: Reloading round info...');
       await loadCurrentRound();
       
       console.log('Comprehensive refresh completed successfully');
