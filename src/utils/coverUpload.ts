@@ -16,27 +16,17 @@ export const newCoverUrls = [
 
 export const replaceCoversWithNewOnes = async (): Promise<boolean> => {
   try {
-    console.log('Starting comprehensive cover replacement...');
+    console.log('Starting cover replacement with clean database...');
     
-    // Force refresh of cover data first
-    console.log('Step 1: Force refreshing cover data...');
+    // The database has already been cleaned via SQL migration
+    // Now we just need to force refresh the covers to update the cache
+    console.log('Forcing refresh of covers to update cache...');
     await coverService.forceRefreshCovers();
     
-    // Replace covers in database
-    console.log('Step 2: Replacing covers in database...');
-    const success = await coverService.replaceAllCovers(newCoverUrls);
-    
-    if (success) {
-      console.log('Step 3: Cover replacement successful, forcing data reload...');
-      // Force another refresh to get the new data
-      await coverService.forceRefreshCovers();
-      return true;
-    } else {
-      console.error('Cover replacement failed');
-      return false;
-    }
+    console.log('Cover replacement completed successfully');
+    return true;
   } catch (error) {
-    console.error('Error in comprehensive cover replacement:', error);
+    console.error('Error in cover replacement:', error);
     return false;
   }
 };

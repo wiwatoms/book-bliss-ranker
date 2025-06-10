@@ -35,6 +35,8 @@ export function AdminDashboard() {
 
   useEffect(() => {
     loadCurrentRound();
+    // Force an initial refresh to ensure covers are loaded
+    handleRefresh();
   }, []);
 
   const loadCurrentRound = async () => {
@@ -46,15 +48,25 @@ export function AdminDashboard() {
     setIsRefreshing(true);
     console.log('Starting comprehensive refresh...');
     
-    // Force refresh covers specifically
-    await forceRefreshCovers();
-    
-    // Then refresh rankings
-    await refreshRankings();
-    await loadCurrentRound();
-    
-    console.log('Comprehensive refresh completed');
-    setIsRefreshing(false);
+    try {
+      // Force refresh covers first to clear any cache issues
+      console.log('Step 1: Force refreshing covers...');
+      await forceRefreshCovers();
+      
+      // Then refresh rankings
+      console.log('Step 2: Refreshing rankings...');
+      await refreshRankings();
+      
+      // Reload current round info
+      console.log('Step 3: Reloading round info...');
+      await loadCurrentRound();
+      
+      console.log('Comprehensive refresh completed successfully');
+    } catch (error) {
+      console.error('Error during refresh:', error);
+    } finally {
+      setIsRefreshing(false);
+    }
   };
 
   const handleStartNewRound = async () => {
@@ -64,7 +76,7 @@ export function AdminDashboard() {
     if (success) {
       console.log('New round started successfully');
       await loadCurrentRound();
-      await handleRefresh(); // Use the improved refresh
+      await handleRefresh();
     } else {
       console.error('Failed to start new round');
     }
@@ -73,11 +85,11 @@ export function AdminDashboard() {
 
   const handleReplaceCovers = async () => {
     setIsReplacingCovers(true);
-    console.log('Starting comprehensive cover replacement...');
+    console.log('Starting cover replacement...');
     const success = await replaceCoversWithNewOnes();
     if (success) {
       console.log('Covers replaced successfully, forcing refresh...');
-      await handleRefresh(); // Use the improved refresh
+      await handleRefresh();
     } else {
       console.error('Failed to replace covers');
     }
