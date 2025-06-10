@@ -1,26 +1,16 @@
 
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { 
-  Settings, 
-  Upload, 
-  Download, 
-  Trash2, 
-  Plus, 
-  BarChart3, 
-  Users,
-  FileText,
-  Image as ImageIcon,
-  RefreshCw,
-  RotateCcw
-} from 'lucide-react';
+import { RefreshCw, RotateCcw, Trash2, Download } from 'lucide-react';
 import { useApp } from '@/contexts/AppContext';
 import { votingRoundService } from '@/services/supabaseServices';
 import { replaceCoversWithNewOnes } from '@/utils/coverUpload';
+import { AdminStatistics } from './admin/AdminStatistics';
+import { ContentManagement } from './admin/ContentManagement';
+import { VotesLog } from './admin/VotesLog';
 
 export function AdminDashboard() {
   const { 
@@ -37,8 +27,6 @@ export function AdminDashboard() {
     refreshRankings
   } = useApp();
 
-  const [newTitle, setNewTitle] = useState('');
-  const [newCoverUrl, setNewCoverUrl] = useState('');
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [currentRound, setCurrentRound] = useState(1);
   const [isStartingNewRound, setIsStartingNewRound] = useState(false);
@@ -53,20 +41,6 @@ export function AdminDashboard() {
     setCurrentRound(round);
   };
 
-  const handleAddTitle = async () => {
-    if (newTitle.trim()) {
-      await addTitle(newTitle.trim());
-      setNewTitle('');
-    }
-  };
-
-  const handleAddCover = async () => {
-    if (newCoverUrl.trim()) {
-      await addCover(newCoverUrl.trim());
-      setNewCoverUrl('');
-    }
-  };
-
   const handleRefresh = async () => {
     setIsRefreshing(true);
     await refreshRankings();
@@ -76,19 +50,27 @@ export function AdminDashboard() {
 
   const handleStartNewRound = async () => {
     setIsStartingNewRound(true);
+    console.log('Attempting to start new round...');
     const success = await votingRoundService.startNewRound();
     if (success) {
+      console.log('New round started successfully');
       await loadCurrentRound();
       await refreshRankings();
+    } else {
+      console.error('Failed to start new round');
     }
     setIsStartingNewRound(false);
   };
 
   const handleReplaceCovers = async () => {
     setIsReplacingCovers(true);
+    console.log('Starting cover replacement...');
     const success = await replaceCoversWithNewOnes();
     if (success) {
+      console.log('Covers replaced successfully');
       await refreshRankings();
+    } else {
+      console.error('Failed to replace covers');
     }
     setIsReplacingCovers(false);
   };
@@ -96,14 +78,6 @@ export function AdminDashboard() {
   const activeTitles = titles.filter(t => t.isActive);
   const activeCovers = covers.filter(c => c.isActive);
   const totalVotes = votes.length;
-
-  // Get user name from vote ID with better fallback
-  const getUserName = (userId: string) => {
-    if (userId === 'admin') return 'Administrator';
-    if (currentUser && userId === currentUser.id) return currentUser.name;
-    // For demo purposes, we'll show a truncated ID since we don't store all users
-    return `User ${userId.slice(-4)}`;
-  };
 
   return (
     <div className="min-h-screen p-6 bg-gray-50">
@@ -131,56 +105,12 @@ export function AdminDashboard() {
           </div>
         </div>
 
-        {/* Statistics Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Aktive Titel</p>
-                  <p className="text-2xl font-bold text-gray-900">{activeTitles.length}</p>
-                </div>
-                <FileText className="w-8 h-8 text-blue-500" />
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Aktive Cover</p>
-                  <p className="text-2xl font-bold text-gray-900">{activeCovers.length}</p>
-                </div>
-                <ImageIcon className="w-8 h-8 text-green-500" />
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Gesamt Stimmen</p>
-                  <p className="text-2xl font-bold text-gray-900">{totalVotes}</p>
-                </div>
-                <BarChart3 className="w-8 h-8 text-purple-500" />
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Abstimmungsrunde</p>
-                  <p className="text-2xl font-bold text-gray-900">{currentRound}</p>
-                </div>
-                <Users className="w-8 h-8 text-orange-500" />
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+        <AdminStatistics 
+          activeTitlesCount={activeTitles.length}
+          activeCoversCount={activeCovers.length}
+          totalVotes={totalVotes}
+          currentRound={currentRound}
+        />
 
         <Tabs defaultValue="content" className="space-y-6">
           <TabsList className="grid w-full grid-cols-4">
@@ -191,142 +121,19 @@ export function AdminDashboard() {
           </TabsList>
 
           <TabsContent value="content" className="space-y-6">
-            <div className="grid lg:grid-cols-2 gap-6">
-              {/* Titel Management */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>Titel verwalten</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="flex gap-2">
-                    <Input
-                      placeholder="Neuen Titel eingeben..."
-                      value={newTitle}
-                      onChange={(e) => setNewTitle(e.target.value)}
-                    />
-                    <Button onClick={handleAddTitle} size="sm">
-                      <Plus className="w-4 h-4" />
-                    </Button>
-                  </div>
-                  
-                  <div className="space-y-2 max-h-60 overflow-y-auto">
-                    {titles.map((title) => (
-                      <div 
-                        key={title.id} 
-                        className={`flex items-center justify-between p-3 rounded-lg ${
-                          title.isActive ? 'bg-green-50 border border-green-200' : 'bg-gray-50 border border-gray-200'
-                        }`}
-                      >
-                        <div className="flex-1">
-                          <p className="font-medium">{title.text}</p>
-                          <p className="text-sm text-gray-600">
-                            Global Score: {Math.round(title.globalScore)} | Votes: {title.voteCount}
-                          </p>
-                        </div>
-                        {title.isActive && (
-                          <Button 
-                            onClick={() => deactivateItem('title', title.id)}
-                            size="sm" 
-                            variant="destructive"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Cover Management */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>Cover verwalten</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="flex gap-2">
-                    <Input
-                      placeholder="Cover-URL eingeben..."
-                      value={newCoverUrl}
-                      onChange={(e) => setNewCoverUrl(e.target.value)}
-                    />
-                    <Button onClick={handleAddCover} size="sm">
-                      <Plus className="w-4 h-4" />
-                    </Button>
-                  </div>
-
-                  <Button 
-                    onClick={handleReplaceCovers}
-                    className="w-full"
-                    variant="outline"
-                    disabled={isReplacingCovers}
-                  >
-                    <Upload className="w-4 h-4 mr-2" />
-                    {isReplacingCovers ? 'Ersetze Cover...' : 'Cover durch neue ersetzen'}
-                  </Button>
-                  
-                  <div className="space-y-2 max-h-60 overflow-y-auto">
-                    {covers.map((cover) => (
-                      <div 
-                        key={cover.id} 
-                        className={`flex items-center justify-between p-3 rounded-lg ${
-                          cover.isActive ? 'bg-green-50 border border-green-200' : 'bg-gray-50 border border-gray-200'
-                        }`}
-                      >
-                        <div className="flex items-center gap-3 flex-1">
-                          <img 
-                            src={cover.imageUrl} 
-                            alt="Cover"
-                            className="w-12 h-16 object-cover rounded"
-                          />
-                          <div>
-                            <p className="text-sm text-gray-600">
-                              Global Score: {Math.round(cover.globalScore)} | Votes: {cover.voteCount}
-                            </p>
-                          </div>
-                        </div>
-                        {cover.isActive && (
-                          <Button 
-                            onClick={() => deactivateItem('cover', cover.id)}
-                            size="sm" 
-                            variant="destructive"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
+            <ContentManagement
+              titles={titles}
+              covers={covers}
+              onAddTitle={addTitle}
+              onAddCover={addCover}
+              onDeactivateItem={deactivateItem}
+              onReplaceCovers={handleReplaceCovers}
+              isReplacingCovers={isReplacingCovers}
+            />
           </TabsContent>
 
           <TabsContent value="votes">
-            <Card>
-              <CardHeader>
-                <CardTitle>Stimmen-Log (letzte 20)</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2 max-h-96 overflow-y-auto">
-                  {votes.slice(-20).reverse().map((vote) => (
-                    <div key={vote.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                      <div>
-                        <p className="font-medium">
-                          {vote.itemType === 'title' ? 'Titel' : 'Cover'} Bewertung
-                        </p>
-                        <p className="text-sm text-gray-600">
-                          Nutzer: {getUserName(vote.userId)} | Gewinner: {vote.winnerItemId.slice(-4)} | Verlierer: {vote.loserItemId.slice(-4)}
-                        </p>
-                      </div>
-                      <div className="text-sm text-gray-500">
-                        {new Date(vote.timestamp).toLocaleDateString('de-DE')} {new Date(vote.timestamp).toLocaleTimeString('de-DE')}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
+            <VotesLog votes={votes} currentUser={currentUser} />
           </TabsContent>
 
           <TabsContent value="export">

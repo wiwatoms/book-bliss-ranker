@@ -102,7 +102,7 @@ export const titleService = {
       id: title.id,
       text: title.text,
       globalScore: Number(title.global_score),
-      localScore: 1000, // Reset for each user session
+      localScore: 1000,
       isActive: title.is_active,
       voteCount: title.vote_count
     }));
@@ -176,7 +176,7 @@ export const coverService = {
       id: cover.id,
       imageUrl: cover.image_url,
       globalScore: Number(cover.global_score),
-      localScore: 1000, // Reset for each user session
+      localScore: 1000,
       isActive: cover.is_active,
       voteCount: cover.vote_count
     }));
@@ -235,21 +235,37 @@ export const coverService = {
 
   async replaceAllCovers(newCovers: string[]): Promise<boolean> {
     try {
-      // Deactivate all existing covers
-      await supabase
+      console.log('Starting cover replacement process...');
+      
+      // First, deactivate ALL existing covers
+      const { error: deactivateError } = await supabase
         .from('covers')
         .update({ is_active: false })
-        .eq('is_active', true);
+        .neq('id', '00000000-0000-0000-0000-000000000000'); // Update all records
 
-      // Add new covers
-      const { error } = await supabase
-        .from('covers')
-        .insert(newCovers.map(url => ({ image_url: url })));
-
-      if (error) {
-        console.error('Error replacing covers:', error);
+      if (deactivateError) {
+        console.error('Error deactivating existing covers:', deactivateError);
         return false;
       }
+
+      console.log('Deactivated all existing covers');
+
+      // Add new covers
+      const { error: insertError } = await supabase
+        .from('covers')
+        .insert(newCovers.map(url => ({ 
+          image_url: url,
+          is_active: true,
+          global_score: 1000,
+          vote_count: 0
+        })));
+
+      if (insertError) {
+        console.error('Error inserting new covers:', insertError);
+        return false;
+      }
+
+      console.log('Successfully added new covers');
       return true;
     } catch (error) {
       console.error('Error in replaceAllCovers:', error);
@@ -331,6 +347,8 @@ export const votingRoundService = {
 
   async startNewRound(): Promise<boolean> {
     try {
+      console.log('Starting new voting round...');
+      
       // Get current round number
       const { data: currentRound } = await supabase
         .from('voting_rounds')
@@ -339,33 +357,51 @@ export const votingRoundService = {
         .single();
 
       // Deactivate current round
-      await supabase
+      const { error: deactivateRoundError } = await supabase
         .from('voting_rounds')
         .update({ is_active: false })
         .eq('is_active', true);
 
-      // Create new round
-      const newRoundNumber = (currentRound?.round_number || 0) + 1;
-      const { error } = await supabase
-        .from('voting_rounds')
-        .insert([{ round_number: newRoundNumber, is_active: true }]);
-
-      if (error) {
-        console.error('Error creating new round:', error);
+      if (deactivateRoundError) {
+        console.error('Error deactivating current round:', deactivateRoundError);
         return false;
       }
 
-      // Reset global scores for all titles and covers
-      await supabase
+      // Create new round
+      const newRoundNumber = (currentRound?.round_number || 0) + 1;
+      const { error: createRoundError } = await supabase
+        .from('voting_rounds')
+        .insert([{ round_number: newRoundNumber, is_active: true }]);
+
+      if (createRoundError) {
+        console.error('Error creating new round:', createRoundError);
+        return false;
+      }
+
+      console.log(`Created new round ${newRoundNumber}`);
+
+      // Reset global scores and vote counts for ALL active titles and covers
+      const { error: resetTitlesError } = await supabase
         .from('titles')
         .update({ global_score: 1000, vote_count: 0 })
         .eq('is_active', true);
 
-      await supabase
+      if (resetTitlesError) {
+        console.error('Error resetting titles:', resetTitlesError);
+        return false;
+      }
+
+      const { error: resetCoversError } = await supabase
         .from('covers')
         .update({ global_score: 1000, vote_count: 0 })
         .eq('is_active', true);
 
+      if (resetCoversError) {
+        console.error('Error resetting covers:', resetCoversError);
+        return false;
+      }
+
+      console.log('Successfully reset all scores and vote counts');
       return true;
     } catch (error) {
       console.error('Error starting new round:', error);
