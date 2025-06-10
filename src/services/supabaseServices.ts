@@ -423,6 +423,8 @@ export const coverService = {
 
   async deleteCover(coverId: string): Promise<boolean> {
     try {
+      console.log('Starting cover deletion process for ID:', coverId);
+      
       // First get the cover to extract the image URL for storage deletion
       const { data: coverData, error: fetchError } = await supabase
         .from('covers')
@@ -432,9 +434,13 @@ export const coverService = {
 
       if (fetchError) {
         console.error('Error fetching cover for deletion:', fetchError);
+        return false;
       }
 
+      console.log('Cover data to delete:', coverData);
+
       // Delete related votes first
+      console.log('Deleting related votes...');
       const { error: votesError } = await supabase
         .from('votes')
         .delete()
@@ -444,7 +450,21 @@ export const coverService = {
         console.error('Error deleting cover votes:', votesError);
       }
 
+      // Delete from storage first if it's a Supabase storage URL
+      if (coverData?.image_url && coverData.image_url.includes('supabase')) {
+        console.log('Deleting from Supabase storage:', coverData.image_url);
+        const storageDeleted = await storageService.deleteFile(coverData.image_url);
+        if (!storageDeleted) {
+          console.warn('Failed to delete cover file from storage, but continuing with database deletion');
+        } else {
+          console.log('Successfully deleted from storage');
+        }
+      } else {
+        console.log('URL is not a Supabase storage URL, skipping storage deletion');
+      }
+
       // Delete from database
+      console.log('Deleting from database...');
       const { error } = await supabase
         .from('covers')
         .delete()
@@ -455,15 +475,7 @@ export const coverService = {
         return false;
       }
 
-      // Delete from storage if we have the URL and it's a storage URL
-      if (coverData?.image_url && coverData.image_url.includes('supabase')) {
-        const deleted = await storageService.deleteFile(coverData.image_url);
-        if (!deleted) {
-          console.warn('Failed to delete cover file from storage, but database entry was removed');
-        }
-      }
-
-      console.log('Cover deleted successfully:', coverId);
+      console.log('Cover deleted successfully from database:', coverId);
       return true;
     } catch (error) {
       console.error('Error in deleteCover:', error);
@@ -473,6 +485,8 @@ export const coverService = {
 
   async deleteAllCovers(): Promise<boolean> {
     try {
+      console.log('Starting bulk cover deletion...');
+      
       // Get all cover URLs for storage deletion
       const { data: covers, error: fetchError } = await supabase
         .from('covers')
@@ -492,7 +506,7 @@ export const coverService = {
         console.error('Error deleting cover votes:', votesError);
       }
 
-      // Delete from database
+      // Delete from database first
       const { error } = await supabase
         .from('covers')
         .delete()
@@ -510,6 +524,7 @@ export const coverService = {
           .filter(url => url && url.includes('supabase'));
         
         if (storageUrls.length > 0) {
+          console.log('Deleting', storageUrls.length, 'files from storage');
           const deleted = await storageService.deleteFiles(storageUrls);
           if (!deleted) {
             console.warn('Failed to delete some cover files from storage, but database entries were removed');

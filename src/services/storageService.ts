@@ -53,15 +53,16 @@ export const storageService = {
   },
 
   /**
-   * Delete a file from Supabase Storage
+   * Delete a file from Supabase Storage by extracting filename from URL
    */
   async deleteFile(url: string, bucket: string = 'covers'): Promise<boolean> {
     try {
-      // Extract file path from URL
+      // Extract filename from Supabase Storage URL
+      // URL format: https://project.supabase.co/storage/v1/object/public/bucket/filename
       const urlParts = url.split('/');
       const fileName = urlParts[urlParts.length - 1];
       
-      console.log(`Deleting file: ${fileName} from bucket: ${bucket}`);
+      console.log(`Attempting to delete file: ${fileName} from bucket: ${bucket}`);
       
       const { error } = await supabase.storage
         .from(bucket)
@@ -72,7 +73,7 @@ export const storageService = {
         return false;
       }
 
-      console.log('File deleted successfully');
+      console.log('File deleted successfully from storage');
       return true;
     } catch (error) {
       console.error('Storage delete error:', error);
@@ -85,11 +86,16 @@ export const storageService = {
    */
   async deleteFiles(urls: string[], bucket: string = 'covers'): Promise<boolean> {
     try {
-      // Extract file paths from URLs
+      // Extract filenames from URLs
       const fileNames = urls.map(url => {
         const urlParts = url.split('/');
         return urlParts[urlParts.length - 1];
-      });
+      }).filter(fileName => fileName && fileName.length > 0);
+      
+      if (fileNames.length === 0) {
+        console.log('No valid filenames to delete');
+        return true;
+      }
       
       console.log(`Deleting files: ${fileNames.join(', ')} from bucket: ${bucket}`);
       
@@ -102,7 +108,7 @@ export const storageService = {
         return false;
       }
 
-      console.log('Files deleted successfully');
+      console.log('Files deleted successfully from storage');
       return true;
     } catch (error) {
       console.error('Storage bulk delete error:', error);
